@@ -1,2 +1,1 @@
-# snaptask
-Collaborative task management platform
+# SnapTask - Task Management Platform
