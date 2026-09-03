@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend — 213 API checks
+    runs-on: ubuntu-latest
+
+    # The test suite talks to a real Postgres and a real Redis rather than
+    # mocks: the full-text search is Postgres-specific and the rate limiter is
+    # Redis-backed, so mocking either would test the mock instead of the app.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: snaptask_user
+          POSTGRES_PASSWORD: snaptask_password
+          POSTGRES_DB: snaptask_test
+        ports: ['5432:5432']
+        # without a health check the first migration races the server's startup
+        options: >-
+          --health-cmd "pg_isready -U snaptask_user"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://snaptask_user:snaptask_password@localhost:5432/snaptask_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci_only_secret_not_used_anywhere_real
+      APP_URL: http://localhost:5173
+      PORT: 3000
+      # RESEND_API_KEY is deliberately unset. The mailer logs to the console
+      # instead of sending, so CI never emails a real person.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Apply migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Start the server
+        working-directory: backend
+        run: |
+          # nohup + disown so the server survives this step ending; the suite
+          # runs in the next step and needs it still listening.
+          nohup npm start > server.log 2>&1 &
+          disown
+          echo "waiting for the server to answer /health..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/health > /dev/null; then
+              echo "up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "server never came up:"; cat server.log; exit 1
+
+      - name: Run the end-to-end API suite
+        working-directory: backend
+        run: npm test
+
+      - name: Server log
+        # the suite's own output rarely explains a 500 — the server log does
+        if: failure()
+        working-directory: backend
+        run: cat server.log
+
+  frontend:
+    name: Frontend — build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  migrations:
+    name: Migrations — apply from scratch
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: snaptask_user
+          POSTGRES_PASSWORD: snaptask_password
+          POSTGRES_DB: snaptask_drift
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U snaptask_user"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://snaptask_user:snaptask_password@localhost:5432/snaptask_drift
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - working-directory: backend
+        run: npm ci
+
+      # Every migration replayed against an empty database. Catches an edited
+      # or out-of-order migration that still "works" locally because the local
+      # database already has the change applied.
+      #
+      # Note: `prisma migrate diff` is deliberately NOT used as a drift gate
+      # here. The search columns are GENERATED ALWAYS ... STORED and the
+      # indexes are GIN — neither is expressible in schema.prisma, so diff
+      # reports them as drift on every run and would be red forever. Asserting
+      # the objects exist is the check that actually means something.
+      - name: Migrations apply to an empty database
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Full-text search objects exist afterwards
+        run: |
+          command -v psql > /dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          export PGPASSWORD=snaptask_password
+          psql -h localhost -U snaptask_user -d snaptask_drift -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE cols int; idx int;
+          BEGIN
+            SELECT count(*) INTO cols FROM information_schema.columns
+              WHERE column_name = 'searchVector' AND is_generated = 'ALWAYS';
+            SELECT count(*) INTO idx FROM pg_indexes
+              WHERE indexname IN ('Task_searchVector_idx','Message_searchVector_idx',
+                                  'Comment_searchVector_idx','Task_title_trgm_idx');
+            IF cols <> 3 THEN
+              RAISE EXCEPTION 'expected 3 generated tsvector columns, found %', cols;
+            END IF;
+            IF idx <> 4 THEN
+              RAISE EXCEPTION 'expected 4 search indexes, found %', idx;
+            END IF;
+            RAISE NOTICE 'full-text search objects present: % columns, % indexes', cols, idx;
+          END $$;
+          SQL

@@ -1,5 +1,7 @@
 # SnapTask
 
+[![CI](https://github.com/SAISHYAMR2002/snaptask/actions/workflows/ci.yml/badge.svg)](https://github.com/SAISHYAMR2002/snaptask/actions/workflows/ci.yml)
+
 A collaborative task management app — team workspaces with a task board, chat,
 role-based access, notifications and admin analytics.
 
@@ -55,9 +57,13 @@ every row first, and refuses to run against a non-local database.
 ## Features
 
 - **Workspaces** with three roles — owner, admin, member — enforced server-side
-- **Task board** — To Do / In Progress / Done, priorities, due dates, assignees,
-  search and filters
-- **Task detail** panel with inline editing and comments
+- **Task board** — per-workspace columns you define yourself, priorities, due
+  dates, assignees, labels, estimates, filters, and bulk actions with undo
+- **Task detail** panel — inline editing, labels, a checklist of subtasks,
+  comments, and an activity feed with derived timings (cycle time, lead time,
+  how often the deadline moved)
+- **Search** — Postgres full-text across task titles, descriptions, chat
+  messages and comments, reachable from anywhere with `Ctrl/Cmd + K`
 - **Chat** — channels, `@mention` autocomplete, emoji picker, reactions, inline
   polls, typing indicators and read receipts; tasks linkable into a message
 - **Assistant** — ask questions about the workspace in plain English ("when will
@@ -65,9 +71,11 @@ every row first, and refuses to run against a non-local database.
   real rows
 - **Notifications** — in-app inbox plus email, driven by per-user preferences
 - **Team Analytics** (admins only) — throughput, on-time rate, workload balance,
-  a burndown chart and a completion forecast
+  cycle time, a member leaderboard, a burndown chart and a completion forecast,
+  over any date range or sprint, exportable as CSV
 - **Auth** — JWT, bcrypt, email verification, password reset, Redis-backed rate
   limiting
+- **Dark mode** and a layout that works down to a 390px phone
 
 The forecast is a transparent heuristic, not machine learning: each person's
 completion rate over the last 14 days is projected across their open tasks in
@@ -78,13 +86,18 @@ due-date order.
 ```bash
 cd backend
 npm run dev     # server must be running
-npm test        # 150 checks
+npm test        # 213 checks
 ```
 
 The suite creates five real users and walks the full permission matrix
 (owner / admin / member / removed member / non-member) across every endpoint,
-plus validation, email verification, password reset, rate limiting and latency
-budgets.
+plus validation, email verification, password reset, rate limiting, full-text
+search isolation and latency budgets.
+
+Every push runs it in GitHub Actions against a real Postgres and a real Redis —
+not mocks. The search is Postgres-specific and the rate limiter is Redis-backed,
+so mocking either would only test the mock. CI also builds the frontend and
+replays every migration against an empty database.
 
 ## Layout
 
@@ -96,8 +109,9 @@ backend/
   test/         end-to-end API suite
 frontend/
   src/pages/       one file per screen
-  src/components/  layout, task card, detail panel, shared UI
+  src/components/  layout, task card, detail panel, command palette, shared UI
   src/lib/         api client and helpers
+.github/workflows/ CI
 docs/            how to inspect the database and Redis
 design/          UI mockups
 ```

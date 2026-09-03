@@ -15,7 +15,11 @@ const BASE = process.env.TEST_BASE || 'http://localhost:3000'
 // rate-limit counters behind that would block this run's signups.
 {
   const { default: dotenv } = await import('dotenv')
-  dotenv.config({ path: new URL('../.env', import.meta.url).pathname.replace(/^\//, '') })
+  const { fileURLToPath } = await import('node:url')
+  // fileURLToPath, not .pathname — on Windows the latter yields "/C:/..." and
+  // on Linux stripping the leading slash turns an absolute path into a
+  // relative one. Either way the .env would silently not load.
+  dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) })
   try {
     const { default: Redis } = await import('ioredis')
     const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
