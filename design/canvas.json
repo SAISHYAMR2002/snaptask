@@ -1,0 +1,21 @@
+{
+  "artboards": [
+    { "file": "Login.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Login  ·  /login" },
+    { "file": "Signup.dc.html", "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Sign up  ·  /signup" },
+    { "file": "Settings.dc.html", "x": 3040, "y": 0, "w": 1440, "h": 940, "title": "Settings  ·  email & reminders" },
+
+    { "file": "Dashboard.dc.html", "x": 0, "y": 1120, "w": 1440, "h": 900, "title": "My Dashboard  ·  /" },
+    { "file": "Main.dc.html", "x": 1520, "y": 1120, "w": 1440, "h": 900, "title": "Task Board  ·  /workspace/:id" },
+    { "file": "TaskDetail.dc.html", "x": 3040, "y": 1120, "w": 1440, "h": 900, "title": "Task Detail  ·  slide-over panel" },
+
+    { "file": "Chat.dc.html", "x": 0, "y": 2240, "w": 1440, "h": 900, "title": "Team Chat  ·  /chat  (Phase 2)" },
+    { "file": "AdminDashboard.dc.html", "x": 1520, "y": 2240, "w": 1440, "h": 940, "title": "Team Analytics  ·  admin only  (Phase 2)" },
+    { "file": "Notifications.dc.html", "x": 3040, "y": 2240, "w": 1440, "h": 900, "title": "Inbox / Alerts  ·  (Phase 2)" }
+  ],
+  "annotations": [
+    { "id": "overview", "x": 0, "y": -330, "w": 1500, "text": "SnapTask — full product map    ·    style: vibrant & friendly, violet accent\n\nBUILD FOR SUNDAY (working):   Login   ·   Sign up   ·   My Dashboard   ·   Task Board   ·   Task Detail\nPHASE 2 (designed now, built after):   Team Chat   ·   Team Analytics (admin, with forecasting)   ·   Inbox / alerts   ·   Email & reminder settings\n\nApp shell on every screen: 260px sidebar (nav + workspaces + chat channels + admin section) and a 64px top bar." },
+    { "id": "core-row", "x": 0, "y": 1035, "w": 560, "text": "CORE  —  the Sunday target\nMy Dashboard = your numbers, weekly chart, sprint ring, streak, activity feed.\nTask Board = click the status pill on a card to move it (dropdown shown open, no drag).\nTask Detail = a slide-over panel over the board." },
+    { "id": "phase2-row", "x": 0, "y": 2155, "w": 620, "text": "PHASE 2  —  designed now, built after Sunday\nChat: channels + @mentions + link a task into a message.\nTeam Analytics (admin only): per-member On track / At risk / Behind, workload balance, and a burndown forecast (\"finishes ~2 days late\").\nInbox: every alert type in one place.  Settings: which emails go out + reminder timing." }
+  ],
+  "launch": { "view": "canvas" }
+}

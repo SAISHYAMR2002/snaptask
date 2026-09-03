@@ -1,0 +1,85 @@
+### SnapTask API — click "Send Request" above any block (VS Code REST Client extension)
+### Run them top to bottom. After "Log in", copy the token from the response
+### into the @token line below.
+
+@baseUrl = http://localhost:3000
+@token = PASTE_TOKEN_HERE
+@workspaceId = PASTE_WORKSPACE_ID_HERE
+@taskId = PASTE_TASK_ID_HERE
+
+### Health check
+GET {{baseUrl}}/health
+
+### Sign up  ->  returns { user, token }
+POST {{baseUrl}}/auth/signup
+Content-Type: application/json
+
+{
+  "name": "Sai Ramadoss",
+  "email": "sai@example.com",
+  "password": "password123"
+}
+
+### Log in  ->  returns { user, token }   (copy token into @token above)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "sai@example.com",
+  "password": "password123"
+}
+
+### Who am I  (protected — proves the token works)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### Create a workspace  ->  copy workspace.id into @workspaceId above
+POST {{baseUrl}}/workspaces
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "name": "Product Team" }
+
+### List my workspaces
+GET {{baseUrl}}/workspaces
+Authorization: Bearer {{token}}
+
+### Invite a member by email  (owner only — sign up a 2nd user first to test)
+POST {{baseUrl}}/workspaces/{{workspaceId}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "email": "teammate@example.com" }
+
+### Create a task  ->  copy task.id into @taskId above
+POST {{baseUrl}}/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "workspaceId": "{{workspaceId}}",
+  "title": "Write API docs for the /tasks endpoints",
+  "priority": "high"
+}
+
+### List tasks in the workspace
+GET {{baseUrl}}/tasks?workspaceId={{workspaceId}}
+Authorization: Bearer {{token}}
+
+### Get one task
+GET {{baseUrl}}/tasks/{{taskId}}
+Authorization: Bearer {{token}}
+
+### Move the task to In Progress
+PATCH {{baseUrl}}/tasks/{{taskId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "status": "in-progress" }
+
+### Delete the task
+DELETE {{baseUrl}}/tasks/{{taskId}}
+Authorization: Bearer {{token}}
+
+### No token  ->  should return 401
+GET {{baseUrl}}/workspaces

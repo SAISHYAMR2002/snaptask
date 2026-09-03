@@ -10,6 +10,9 @@ node_modules/
 dist/
 build/
 
+# design canvas: keep the source artboards, ignore the ~2MB generated bundle
+design/snaptask-ui.html
+
 # logs
 *.log
 npm-debug.log*

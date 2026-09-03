@@ -13,12 +13,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'Backend is running!' });
 });
 
-// Routes get mounted here on Day 2
-// app.use('/auth', require('./routes/auth'));
-// app.use('/workspaces', require('./routes/workspaces'));
-// app.use('/tasks', require('./routes/tasks'));
+// Feature routes
+app.use('/auth', require('./routes/auth'));
+app.use('/workspaces', require('./routes/workspaces'));
+app.use('/tasks', require('./routes/tasks'));
 
-// Fallback error handler
+// Anything that throws inside a route lands here. Express 5 automatically
+// forwards errors from async handlers, so we don't need try/catch everywhere.
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status || 500).json({ error: err.message || 'Server error' });
