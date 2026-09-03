@@ -115,11 +115,11 @@ function Toggle({ on, onChange }) {
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className={`relative h-[22px] w-[38px] shrink-0 rounded-full transition ${on ? 'bg-brand-600' : 'bg-[#e2ddf0]'}`}
+      className={`relative h-[22px] w-[38px] shrink-0 rounded-full transition ${on ? 'bg-brand-600' : 'bg-surface-3'}`}
       aria-pressed={on}
     >
       <span
-        className={`absolute top-[3px] size-4 rounded-full bg-white transition-all ${on ? 'left-[19px]' : 'left-[3px]'}`}
+        className={`absolute top-[3px] size-4 rounded-full bg-surface transition-all ${on ? 'left-[19px]' : 'left-[3px]'}`}
       />
     </button>
   )
@@ -127,7 +127,7 @@ function Toggle({ on, onChange }) {
 
 function Row({ title, hint, badge, children, on, onChange }) {
   return (
-    <div className="flex items-start gap-4 border-t border-[#f4f1fc] py-3.5">
+    <div className="flex items-start gap-4 border-t border-line-soft py-3.5">
       <div className="flex-1">
         <div className="flex items-center gap-2 text-[13px] font-bold">
           {title} {badge}
@@ -238,7 +238,7 @@ export default function Settings() {
             <select
               value={prefs.digestHour}
               onChange={(e) => set({ digestHour: Number(e.target.value) })}
-              className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12.5px] font-bold text-ink-soft outline-none"
+              className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] font-bold text-ink-soft outline-none"
             >
               {Array.from({ length: 24 }, (_, h) => (
                 <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>

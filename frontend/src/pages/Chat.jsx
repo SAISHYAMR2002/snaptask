@@ -127,7 +127,7 @@ export default function Chat() {
         <div className="flex items-center">
           {workspace.members.slice(0, 4).map((m, i) => (
             <span key={m.id} className={i ? '-ml-2' : ''}>
-              <Avatar name={m.name} size={26} className="ring-2 ring-white" />
+              <Avatar name={m.name} size={26} className="ring-2 ring-surface" />
             </span>
           ))}
         </div>
@@ -239,7 +239,7 @@ function NewPollModal({ open, onClose, onCreate }) {
               value={o}
               onChange={(e) => setOptions(options.map((x, j) => (j === i ? e.target.value : x)))}
               placeholder={`Option ${i + 1}`}
-              className="h-10 rounded-xl border-[1.5px] border-line bg-[#fdfcff] px-3 text-sm outline-none placeholder:text-faint focus:border-brand-500"
+              className="h-10 rounded-xl border-[1.5px] border-line bg-surface-2 px-3 text-sm outline-none placeholder:text-faint focus:border-brand-500"
             />
           ))}
           {options.length < 10 && (

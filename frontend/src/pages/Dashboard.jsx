@@ -134,7 +134,7 @@ export default function Dashboard() {
             />
           ) : (
             <div className="overflow-hidden rounded-2xl border border-line">
-              <div className="grid grid-cols-[2.4fr_1.1fr_1fr_0.9fr_1fr] gap-3 bg-[#faf8ff] px-4 py-2.5 text-[10px] font-extrabold tracking-wider text-faint">
+              <div className="grid grid-cols-[2.4fr_1.1fr_1fr_0.9fr_1fr] gap-3 bg-surface-2 px-4 py-2.5 text-[10px] font-extrabold tracking-wider text-faint">
                 <span>TASK</span><span>WORKSPACE</span><span>PRIORITY</span><span>DUE</span><span>STATUS</span>
               </div>
               {tasks.map((t) => {
@@ -145,7 +145,7 @@ export default function Dashboard() {
                   <button
                     key={t.id}
                     onClick={() => navigate(`/workspace/${t.workspace.id}?task=${t.id}`)}
-                    className="grid w-full grid-cols-[2.4fr_1.1fr_1fr_0.9fr_1fr] items-center gap-3 border-t border-[#f4f1fc] px-4 py-3 text-left text-[13px] transition hover:bg-brand-50/50"
+                    className="grid w-full grid-cols-[2.4fr_1.1fr_1fr_0.9fr_1fr] items-center gap-3 border-t border-line-soft px-4 py-3 text-left text-[13px] transition hover:bg-brand-50/50"
                   >
                     <span className="truncate font-medium">{t.title}</span>
                     <span className="flex min-w-0 items-center gap-2 text-muted">

@@ -31,7 +31,7 @@ function BarsBlock({ title, items }) {
         {items.map((b, i) => (
           <div key={i} className="flex items-center gap-2.5">
             <span className="w-24 shrink-0 truncate text-[11.5px] font-bold text-muted">{b.label}</span>
-            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#f4f1fc]">
+            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-3">
               <div className="h-full rounded-full bg-brand-500" style={{ width: `${(b.value / max) * 100}%` }} />
             </div>
             <span className="w-5 text-right text-[11px] font-extrabold text-ink-soft">{b.value}</span>
@@ -65,7 +65,7 @@ function TasksBlock({ items }) {
         const due = formatDue(t.dueDate)
         const overdue = due?.overdue && t.status !== 'done'
         return (
-          <div key={t.id} className={`flex items-center gap-3 px-3.5 py-2.5 text-[12.5px] ${i ? 'border-t border-[#f4f1fc]' : ''}`}>
+          <div key={t.id} className={`flex items-center gap-3 px-3.5 py-2.5 text-[12.5px] ${i ? 'border-t border-line-soft' : ''}`}>
             <span className="size-[7px] shrink-0 rounded-full" style={{ background: priorityMeta(t.priority).dot }} />
             <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
             {t.assignee && <span className="shrink-0 text-[11.5px] text-faint">{t.assignee}</span>}
@@ -209,7 +209,7 @@ export default function Assistant() {
           onSubmit={(e) => { e.preventDefault(); ask(draft) }}
           className="shrink-0 border-t border-line px-7 py-4"
         >
-          <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-2xl border-[1.5px] border-line bg-white px-4 py-2.5 focus-within:border-brand-500">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-2xl border-[1.5px] border-line bg-surface px-4 py-2.5 focus-within:border-brand-500">
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

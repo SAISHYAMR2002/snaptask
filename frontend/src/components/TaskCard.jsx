@@ -2,7 +2,7 @@ import { formatDue } from '../lib/helpers'
 import { STATUSES } from '../lib/helpers'
 import { Avatar, IconCalendar, PriorityDot } from './ui'
 
-export default function TaskCard({ task, onMove, onOpen }) {
+export default function TaskCard({ task, onMove, onOpen, columns }) {
   const raw = formatDue(task.dueDate)
   // a finished task is never "overdue" — don't paint it red
   const due = raw && task.status === 'done' ? { ...raw, overdue: false, soon: false } : raw
@@ -10,7 +10,7 @@ export default function TaskCard({ task, onMove, onOpen }) {
   return (
     <div
       onClick={() => onOpen(task.id)}
-      className="flex cursor-pointer flex-col gap-2.5 rounded-xl border border-line bg-white p-3 shadow-[0_2px_8px_rgba(124,58,237,0.06)] transition hover:border-brand-200"
+      className="flex cursor-pointer flex-col gap-2.5 rounded-xl border border-line bg-surface p-3 shadow-[0_2px_8px_rgba(124,58,237,0.06)] transition hover:border-brand-200"
     >
       <div
         className={`text-[13.5px] font-medium leading-snug ${
@@ -30,7 +30,7 @@ export default function TaskCard({ task, onMove, onOpen }) {
                   ? 'bg-red-100 text-red-700'
                   : due.soon
                     ? 'bg-amber-100 text-amber-700'
-                    : 'bg-[#f1edfb] text-muted'
+                    : 'bg-surface-3 text-muted'
               }`}
             >
               <IconCalendar size={11} />
@@ -40,14 +40,14 @@ export default function TaskCard({ task, onMove, onOpen }) {
           {task.assignedTo ? (
             <Avatar name={task.assignedTo.name} size={22} />
           ) : (
-            <span className="grid size-[22px] place-items-center rounded-[30%] bg-[#f1edfb] text-[11px] font-extrabold text-faint">
+            <span className="grid size-[22px] place-items-center rounded-[30%] bg-surface-3 text-[11px] font-extrabold text-faint">
               ?
             </span>
           )}
         </div>
       </div>
 
-      <div className="border-t border-[#f4f1fc] pt-2">
+      <div className="border-t border-line-soft pt-2">
         <select
           value={task.status}
           onClick={(e) => e.stopPropagation()}
@@ -56,9 +56,9 @@ export default function TaskCard({ task, onMove, onOpen }) {
             // must be a patch OBJECT — the API expects { status }, not a bare string
             onMove(task.id, { status: e.target.value })
           }}
-          className="cursor-pointer rounded-md bg-[#f4f1fc] px-2 py-1 text-[11px] font-bold text-ink-soft outline-none"
+          className="cursor-pointer rounded-md bg-surface-3 px-2 py-1 text-[11px] font-bold text-ink-soft outline-none"
         >
-          {STATUSES.map((s) => (
+          {(columns?.length ? columns : STATUSES).map((s) => (
             <option key={s.key} value={s.key}>
               {s.label}
             </option>

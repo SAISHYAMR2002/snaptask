@@ -24,7 +24,7 @@ function MessageText({ text, members }) {
 
 function Poll({ poll, onVote }) {
   return (
-    <div className="mt-2 w-[380px] max-w-full rounded-xl border border-line bg-[#fdfcff] p-3.5">
+    <div className="mt-2 w-[380px] max-w-full rounded-xl border border-line bg-surface-2 p-3.5">
       <div className="mb-0.5 text-[10px] font-extrabold tracking-wider text-faint">
         POLL{poll.multiple ? ' · PICK SEVERAL' : ''}
       </div>
@@ -46,8 +46,8 @@ function Poll({ poll, onVote }) {
               style={{ width: `${o.pct}%` }}
             />
             <span className="relative flex items-center gap-2">
-              <span className={`grid size-4 shrink-0 place-items-center rounded-full border-2 ${o.mine ? 'border-brand-600 bg-brand-600' : 'border-[#d8d2ea]'}`}>
-                {o.mine && <span className="size-1.5 rounded-full bg-white" />}
+              <span className={`grid size-4 shrink-0 place-items-center rounded-full border-2 ${o.mine ? 'border-brand-600 bg-brand-600' : 'border-line'}`}>
+                {o.mine && <span className="size-1.5 rounded-full bg-surface" />}
               </span>
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold">{o.text}</span>
               <span className="shrink-0 text-[11.5px] font-extrabold text-muted">{o.pct}%</span>
@@ -91,7 +91,7 @@ export default function ChatMessage({ message: m, members, onReact, onVote }) {
         {m.poll && <Poll poll={m.poll} onVote={onVote} />}
 
         {m.task && (
-          <div className="mt-2 w-[340px] max-w-full rounded-xl border border-line bg-[#fdfcff] p-3">
+          <div className="mt-2 w-[340px] max-w-full rounded-xl border border-line bg-surface-2 p-3">
             <div className="mb-1.5 text-[11px] font-bold text-faint">Linked task</div>
             <div className="text-[13px] font-bold">{m.task.title}</div>
             <span className={`mt-2 inline-flex rounded-md px-2 py-0.5 text-[10.5px] font-bold ${statusMeta(m.task.status).chip}`}>
@@ -122,7 +122,7 @@ export default function ChatMessage({ message: m, members, onReact, onVote }) {
 
       {/* hover: quick reaction row */}
       <div className="absolute -top-3 right-0 opacity-0 transition group-hover:opacity-100">
-        <div className="flex items-center gap-0.5 rounded-full border border-line bg-white px-1 py-0.5 shadow-[0_4px_14px_rgba(30,27,46,0.12)]">
+        <div className="flex items-center gap-0.5 rounded-full border border-line bg-surface px-1 py-0.5 shadow-[0_4px_14px_rgba(30,27,46,0.12)]">
           {(showPicker ? QUICK_REACTIONS : QUICK_REACTIONS.slice(0, 3)).map((e) => (
             <button
               key={e}

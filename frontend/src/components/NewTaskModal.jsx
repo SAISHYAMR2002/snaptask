@@ -3,7 +3,7 @@ import { PRIORITIES } from '../lib/helpers'
 import { Button, Modal, TextField } from './ui'
 
 const selectCls =
-  'h-11 w-full rounded-xl border-[1.5px] border-line bg-[#fdfcff] px-3 text-sm outline-none focus:border-brand-500'
+  'h-11 w-full rounded-xl border-[1.5px] border-line bg-surface-2 px-3 text-sm outline-none focus:border-brand-500'
 
 export default function NewTaskModal({ open, onClose, members = [], onCreate }) {
   const [form, setForm] = useState({
@@ -58,7 +58,7 @@ export default function NewTaskModal({ open, onClose, members = [], onCreate }) 
             placeholder="Add detail (optional)"
             value={form.description}
             onChange={set('description')}
-            className="w-full resize-none rounded-xl border-[1.5px] border-line bg-[#fdfcff] px-3.5 py-2.5 text-sm outline-none placeholder:text-faint focus:border-brand-500"
+            className="w-full resize-none rounded-xl border-[1.5px] border-line bg-surface-2 px-3.5 py-2.5 text-sm outline-none placeholder:text-faint focus:border-brand-500"
           />
         </label>
 

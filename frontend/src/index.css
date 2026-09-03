@@ -1,8 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
+/* Class-based dark mode: we toggle `.dark` on <html> rather than following the
+   OS, so the switch in Settings actually does something. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* SnapTask design tokens — "vibrant & friendly".
-   These become Tailwind utilities, e.g. bg-brand-600, text-ink, font-display. */
+   Every surface and text colour is a token, so dark mode is a matter of
+   redefining them below rather than adding dark: to hundreds of classes. */
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
@@ -18,8 +23,37 @@
   --color-ink-soft: #4a4760;
   --color-muted: #6e6a83;
   --color-faint: #a5a1b8;
+
   --color-line: #ece7fa;
+  --color-line-soft: #f4f1fc;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f8f6ff;
+  --color-surface-3: #f1edfb;
   --color-canvas: #faf8ff;
+}
+
+/* Dark palette. Same token names, different values — nothing else changes. */
+.dark {
+  --color-brand-50: #241b3a;
+  --color-brand-100: #2e2148;
+  --color-brand-200: #453263;
+  --color-brand-500: #a78bfa;
+  --color-brand-600: #8b5cf6;
+  --color-brand-700: #c4b5fd;
+
+  --color-ink: #ece9f5;
+  --color-ink-soft: #c7c2d8;
+  --color-muted: #9d97b0;
+  --color-faint: #746e8a;
+
+  --color-line: #2f2942;
+  --color-line-soft: #272134;
+
+  --color-surface: #1a1725;
+  --color-surface-2: #16131f;
+  --color-surface-3: #262032;
+  --color-canvas: #121017;
 }
 
 html,
@@ -32,6 +66,31 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   color: var(--color-ink);
-  background: #ffffff;
+  background: var(--color-surface);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Native controls need to know the theme or they render white-on-white */
+.dark {
+  color-scheme: dark;
+}
+
+/* Slimmer scrollbars, and visible in dark mode */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-200);
+  background-clip: content-box;
 }

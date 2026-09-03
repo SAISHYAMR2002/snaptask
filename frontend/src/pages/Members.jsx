@@ -69,7 +69,7 @@ export default function Members() {
 
       <div className="flex flex-col gap-6 overflow-y-auto p-7">
         {/* who can do what */}
-        <div className="rounded-2xl border border-line bg-[#faf8ff] p-4">
+        <div className="rounded-2xl border border-line bg-surface-2 p-4">
           <h2 className="mb-2 font-display text-sm font-extrabold">How access works</h2>
           <ul className="flex flex-col gap-1.5 text-[13px] text-ink-soft">
             <li className="flex gap-2"><Pill tone="brand">owner</Pill> created the workspace. Can promote/demote admins and delete the workspace.</li>
@@ -107,11 +107,11 @@ export default function Members() {
 
         {/* list */}
         <div className="overflow-hidden rounded-2xl border border-line">
-          <div className="grid grid-cols-[2fr_1fr_auto] gap-4 bg-[#faf8ff] px-5 py-2.5 text-[10px] font-extrabold tracking-wider text-faint">
+          <div className="grid grid-cols-[2fr_1fr_auto] gap-4 bg-surface-2 px-5 py-2.5 text-[10px] font-extrabold tracking-wider text-faint">
             <span>PERSON</span><span>ROLE</span><span />
           </div>
           {workspace.members.map((m) => (
-            <div key={m.id} className="grid grid-cols-[2fr_1fr_auto] items-center gap-4 border-t border-[#f4f1fc] px-5 py-3">
+            <div key={m.id} className="grid grid-cols-[2fr_1fr_auto] items-center gap-4 border-t border-line-soft px-5 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar name={m.name} size={32} />
                 <div className="min-w-0">
@@ -127,7 +127,7 @@ export default function Members() {
                   <select
                     value={m.role}
                     onChange={(e) => changeRole(m.id, e.target.value)}
-                    className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12.5px] font-bold text-ink-soft outline-none focus:border-brand-500"
+                    className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] font-bold text-ink-soft outline-none focus:border-brand-500"
                   >
                     <option value="member">member</option>
                     <option value="admin">admin</option>

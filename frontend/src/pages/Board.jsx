@@ -6,7 +6,7 @@ import { PageHeader } from '../components/AppLayout'
 import { Avatar, Button, EmptyState, IconPlus, IconSearch, Spinner } from '../components/ui'
 
 const filterCls =
-  'h-8 rounded-lg border-[1.5px] border-line bg-white px-2 text-[12.5px] font-semibold text-ink-soft outline-none focus:border-brand-500'
+  'h-8 rounded-lg border-[1.5px] border-line bg-surface px-2 text-[12.5px] font-semibold text-ink-soft outline-none focus:border-brand-500'
 import TaskCard from '../components/TaskCard'
 import TaskDetailPanel from '../components/TaskDetailPanel'
 import NewTaskModal from '../components/NewTaskModal'
@@ -96,11 +96,22 @@ export default function Board() {
     }
   }
 
+  // Columns come from the workspace, not a hardcoded list, so a team can
+  // rename or add their own. Falls back to the three defaults if none exist.
+  const columns = useMemo(
+    () =>
+      workspace?.statuses?.length
+        ? workspace.statuses
+        : STATUSES.map((s, i) => ({ key: s.key, label: s.label, color: s.dot, position: i })),
+    [workspace],
+  )
+
   const grouped = useMemo(() => {
-    const g = { todo: [], 'in-progress': [], done: [] }
-    for (const t of tasks || []) (g[t.status] || g.todo).push(t)
+    const g = Object.fromEntries(columns.map((c) => [c.key, []]))
+    const first = columns[0]?.key
+    for (const t of tasks || []) (g[t.status] || g[first])?.push(t)
     return g
-  }, [tasks])
+  }, [tasks, columns])
 
   // Show a real error with a way out, rather than a spinner that never resolves.
   if (error || workspaceError) {
@@ -130,11 +141,11 @@ export default function Board() {
         <Link to={`/workspace/${id}/members`} className="flex items-center" title="Members">
           {workspace.members.slice(0, 4).map((m, i) => (
             <span key={m.id} className={i ? '-ml-2' : ''}>
-              <Avatar name={m.name} size={28} className="ring-2 ring-white" />
+              <Avatar name={m.name} size={28} className="ring-2 ring-surface" />
             </span>
           ))}
           {workspace.members.length > 4 && (
-            <span className="-ml-2 grid size-7 place-items-center rounded-[30%] bg-brand-100 text-[10px] font-extrabold text-brand-700 ring-2 ring-white">
+            <span className="-ml-2 grid size-7 place-items-center rounded-[30%] bg-brand-100 text-[10px] font-extrabold text-brand-700 ring-2 ring-surface">
               +{workspace.members.length - 4}
             </span>
           )}
@@ -148,8 +159,8 @@ export default function Board() {
       </PageHeader>
 
       {/* search + filters */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-[#f4f1fc] px-7 py-2.5">
-        <div className="flex h-8 w-64 items-center gap-2 rounded-lg border-[1.5px] border-line bg-white px-2.5 focus-within:border-brand-500">
+      <div className="flex shrink-0 items-center gap-2 border-b border-line-soft px-7 py-2.5">
+        <div className="flex h-8 w-64 items-center gap-2 rounded-lg border-[1.5px] border-line bg-surface px-2.5 focus-within:border-brand-500">
           <IconSearch size={14} className="shrink-0 text-faint" />
           <input
             value={search}
@@ -183,7 +194,7 @@ export default function Board() {
       </div>
 
       {tasks.length === 0 ? (
-        <div className="grid flex-1 place-items-center bg-[#fdfcff] p-7">
+        <div className="grid flex-1 place-items-center bg-surface-2 p-7">
           {filtering ? (
             <EmptyState
               title="No tasks match those filters"
@@ -205,12 +216,12 @@ export default function Board() {
       ) : (
         // min-h-0 lets the columns shrink so each one scrolls on its own,
         // instead of the whole board scrolling and taking the headers with it
-        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden bg-[#fdfcff] px-7 py-5">
-          {STATUSES.map((col) => (
+        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden bg-surface-2 px-7 py-5">
+          {columns.map((col) => (
             <div key={col.key} className="flex w-full min-w-[260px] min-h-0 flex-1 flex-col">
               {/* header stays put while the cards below it scroll */}
               <div className="flex shrink-0 items-center gap-2 px-0.5 pb-2.5">
-                <span className="size-2.5 rounded-[3px]" style={{ background: col.dot }} />
+                <span className="size-2.5 rounded-[3px]" style={{ background: col.color || col.dot }} />
                 <span className="text-[13px] font-extrabold">{col.label}</span>
                 <span className="grid h-[18px] min-w-[18px] place-items-center rounded-md bg-brand-100 px-1 text-[11px] font-extrabold text-brand-700">
                   {grouped[col.key].length}
@@ -219,7 +230,7 @@ export default function Board() {
 
               <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-1 pb-2">
                 {grouped[col.key].map((t) => (
-                  <TaskCard key={t.id} task={t} onMove={patchTask} onOpen={openTask} />
+                  <TaskCard key={t.id} task={t} onMove={patchTask} onOpen={openTask} columns={columns} />
                 ))}
 
                 <button

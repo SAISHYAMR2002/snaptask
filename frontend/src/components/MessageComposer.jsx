@@ -94,7 +94,7 @@ export default function MessageComposer({ members = [], channelName, onSend, onT
     <form onSubmit={submit} className="relative shrink-0 px-7 pt-3 pb-5">
       {/* mention autocomplete */}
       {mention && matches.length > 0 && (
-        <div className="absolute bottom-full left-7 z-30 mb-1 w-72 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-[0_14px_36px_rgba(30,27,46,0.18)]">
+        <div className="absolute bottom-full left-7 z-30 mb-1 w-72 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-[0_14px_36px_rgba(30,27,46,0.18)]">
           <div className="px-3 py-1.5 text-[10px] font-extrabold tracking-wider text-faint">
             MEMBERS OF #{channelName}
           </div>
@@ -121,7 +121,7 @@ export default function MessageComposer({ members = [], channelName, onSend, onT
       {showEmoji && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-full right-7 z-30 mb-1 w-80 rounded-xl border border-line bg-white p-2 shadow-[0_14px_36px_rgba(30,27,46,0.18)]"
+          className="absolute bottom-full right-7 z-30 mb-1 w-80 rounded-xl border border-line bg-surface p-2 shadow-[0_14px_36px_rgba(30,27,46,0.18)]"
         >
           <div className="max-h-64 overflow-y-auto">
             {EMOJI_GROUPS.map((g) => (
@@ -147,7 +147,7 @@ export default function MessageComposer({ members = [], channelName, onSend, onT
         </div>
       )}
 
-      <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-line bg-white px-4 py-2.5 focus-within:border-brand-500">
+      <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-line bg-surface px-4 py-2.5 focus-within:border-brand-500">
         <IconHash size={16} className="shrink-0 text-faint" />
         <input
           ref={inputRef}

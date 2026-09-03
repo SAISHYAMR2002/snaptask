@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useMatch, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useMatch, useNavigate, useOutletContext } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import {
   getWorkspaces,
   getWorkspace,
@@ -20,9 +21,12 @@ import {
   IconHome,
   IconLogout,
   IconMail,
+  IconMenu,
+  IconMoon,
   IconPlus,
   IconSettings,
   IconSparkle,
+  IconSun,
   IconUsers,
   Logo,
   Modal,
@@ -51,6 +55,8 @@ const SectionLabel = ({ children, action }) => (
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
+  const { theme, toggle } = useTheme()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
 
   // Which workspace (if any) the current URL is inside.
@@ -103,6 +109,10 @@ export default function AppLayout() {
   useEffect(() => { loadWorkspaces() }, [loadWorkspaces])
   useEffect(() => { setDetail(null); loadDetail() }, [loadDetail])
 
+  // a tap that navigates should also close the mobile drawer
+  const location = useLocation()
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
   // keep the inbox badge live
   useEffect(() => {
     refreshUnread()
@@ -113,9 +123,14 @@ export default function AppLayout() {
   const isAdmin = detail?.myRole === 'admin' || detail?.myRole === 'owner'
 
   return (
-    <div className="flex h-full bg-white">
+    <div className="flex h-full bg-surface">
       {/* ---------------- sidebar ---------------- */}
-      <aside className="flex w-[264px] shrink-0 flex-col border-r border-line bg-[#f8f6ff] p-3">
+      {/* Sidebar: a fixed drawer under lg, a normal column above it. */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-[264px] shrink-0 flex-col border-r border-line bg-surface-2 p-3 transition-transform lg:static lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="px-2.5 pt-1.5 pb-3">
           <Logo />
         </div>
@@ -211,12 +226,19 @@ export default function AppLayout() {
         </div>
 
         {/* profile */}
-        <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-line bg-white p-2.5">
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-surface p-2.5">
           <Avatar name={user?.name} size={30} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] font-bold">{user?.name}</div>
             <div className="truncate text-[10.5px] font-semibold text-faint">{user?.email}</div>
           </div>
+          <button
+            onClick={toggle}
+            className="text-faint hover:text-brand-600"
+            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+          >
+            {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
+          </button>
           <NavLink to="/settings" className="text-faint hover:text-brand-600" title="Settings">
             <IconSettings size={15} />
           </NavLink>
@@ -225,6 +247,11 @@ export default function AppLayout() {
           </button>
         </div>
       </aside>
+
+      {/* dim the page behind the drawer on mobile */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setMobileOpen(false)} />
+      )}
 
       {/* ---------------- page ---------------- */}
       <main className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -242,6 +269,7 @@ export default function AppLayout() {
             openNewWorkspace: () => setShowNewWs(true),
             showToast,
             showError,
+            openMobileNav: () => setMobileOpen(true),
           }}
         />
       </main>
@@ -384,9 +412,11 @@ function NewChannelModal({ open, onClose, workspaceId, onCreated }) {
 }
 
 export function PageHeader({ title, subtitle, badge, children }) {
+  const { openMobileNav } = useOutletContext() || {}
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-line px-7">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line px-4 sm:px-7">
       <div className="flex min-w-0 items-center gap-3">
+        <button onClick={openMobileNav} className="-ml-1 shrink-0 text-muted hover:text-ink lg:hidden" title="Menu"><IconMenu size={20} /></button>
         <h1 className="truncate font-display text-[19px] font-extrabold tracking-tight">{title}</h1>
         {badge}
         {subtitle && <span className="border-l border-line pl-3 text-[12.5px] font-semibold text-faint">{subtitle}</span>}

@@ -34,7 +34,13 @@ export const IconHash = mk(<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />)
 export const IconBell = mk(<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></>)
 export const IconChart = mk(<path d="M4 20V10M10 20V4M16 20v-7M20 20v-3" />, { w: 2.5 })
 export const IconUsers = mk(<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16 5.2a3.5 3.5 0 0 1 0 5.6M17.5 14.5a6.5 6.5 0 0 1 4 5.5" /></>)
-export const IconSettings = mk(<><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" /></>)
+// Sliders, not the old radiating-circle gear — that read as a brightness/sun
+// icon and was easy to mistake for the theme toggle sitting next to it.
+export const IconSettings = mk(<><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h10M18 18h2" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="16" cy="18" r="2" /></>)
+export const IconSun = mk(<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9 6.3 6.3M17.7 17.7l1.4 1.4M19.1 4.9 17.7 6.3M6.3 17.7l-1.4 1.4" /></>)
+export const IconMoon = mk(<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />)
+export const IconMenu = mk(<path d="M4 7h16M4 12h16M4 17h16" />, { w: 2.2 })
+export const IconDownload = mk(<><path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M4 20h16" /></>)
 export const IconSend = mk(<path d="M22 2 11 13M22 2 15 22l-4-9-9-4z" />, { w: 2.2 })
 export const IconMail = mk(<><rect x="2" y="4" width="20" height="16" rx="3" /><path d="m2 7 10 6 10-6" /></>)
 export const IconAlert = mk(<><path d="M12 3 2 20h20L12 3z" /><path d="M12 9v5M12 17v.2" /></>)
@@ -48,7 +54,7 @@ export const IconSparkle = mk(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path
 /** Small coloured pill used for roles and member health. */
 export function Pill({ tone = 'gray', children, className = '' }) {
   const tones = {
-    gray: 'bg-[#f1edfb] text-muted',
+    gray: 'bg-surface-3 text-muted',
     brand: 'bg-brand-100 text-brand-700',
     amber: 'bg-amber-100 text-amber-700',
     green: 'bg-green-100 text-green-700',
@@ -118,7 +124,7 @@ export function Button({ variant = 'primary', className = '', ...props }) {
   const styles = {
     primary:
       'text-white bg-linear-to-b from-brand-500 to-brand-600 shadow-[0_6px_16px_rgba(124,58,237,0.3)] hover:from-brand-600 hover:to-brand-700',
-    ghost: 'bg-white text-ink-soft border border-line hover:bg-brand-50',
+    ghost: 'bg-surface text-ink-soft border border-line hover:bg-brand-50',
     danger: 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100',
   }
   return (
@@ -136,7 +142,7 @@ export function TextField({ label, className = '', ...props }) {
         <span className="mb-1.5 block text-xs font-bold text-ink-soft">{label}</span>
       )}
       <input
-        className={`h-11 w-full rounded-xl border-[1.5px] border-line bg-[#fdfcff] px-3.5 text-sm outline-none placeholder:text-faint focus:border-brand-500 ${className}`}
+        className={`h-11 w-full rounded-xl border-[1.5px] border-line bg-surface-2 px-3.5 text-sm outline-none placeholder:text-faint focus:border-brand-500 ${className}`}
         {...props}
       />
     </label>
@@ -170,7 +176,7 @@ export function AuthShell({ children }) {
       <div className="absolute top-8 left-9">
         <Logo />
       </div>
-      <div className="relative z-10 w-[380px] rounded-3xl border border-line bg-white p-9 shadow-[0_24px_60px_rgba(124,58,237,0.12)]">
+      <div className="relative z-10 w-[380px] rounded-3xl border border-line bg-surface p-9 shadow-[0_24px_60px_rgba(124,58,237,0.12)]">
         {children}
       </div>
     </div>
@@ -221,7 +227,7 @@ export function Modal({ open, onClose, title, children }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-[0_24px_60px_rgba(30,27,46,0.2)]"
+        className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-[0_24px_60px_rgba(30,27,46,0.2)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

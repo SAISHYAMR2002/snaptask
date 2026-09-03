@@ -124,7 +124,7 @@ export default function Inbox() {
                 key={n.id}
                 onClick={() => open(n)}
                 className={`flex w-full gap-3 rounded-xl px-3.5 py-3 text-left transition hover:bg-brand-50 ${
-                  n.read ? '' : 'bg-[#faf8ff]'
+                  n.read ? '' : 'bg-surface-2'
                 }`}
               >
                 <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${t.bg} ${t.fg}`}>

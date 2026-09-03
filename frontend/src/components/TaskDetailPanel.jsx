@@ -4,7 +4,7 @@ import { PRIORITIES, STATUSES, formatDue } from '../lib/helpers'
 import { Avatar, Button, IconSend, IconTrash, IconX, Spinner } from './ui'
 
 const fieldSelect =
-  'rounded-lg border border-line bg-white px-2.5 py-1.5 text-[13px] font-semibold text-ink-soft outline-none focus:border-brand-500'
+  'rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px] font-semibold text-ink-soft outline-none focus:border-brand-500'
 
 const ago = (iso) => {
   const mins = Math.round((Date.now() - new Date(iso)) / 60000)
@@ -59,10 +59,10 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-ink/30" onClick={onClose}>
       <aside
-        className="flex h-full w-[460px] flex-col border-l border-line bg-white shadow-[-16px_0_48px_rgba(30,27,46,0.16)]"
+        className="flex h-full w-[460px] flex-col border-l border-line bg-surface shadow-[-16px_0_48px_rgba(30,27,46,0.16)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[#f4f1fc] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-line-soft px-5 py-4">
           <span className="text-xs font-bold tracking-wide text-faint">
             {task.createdBy?.name ? `Created by ${task.createdBy.name}` : 'Task'}
           </span>
@@ -129,12 +129,12 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
                 description !== (task.description || '') &&
                 onPatch({ description: description.trim() || null })
               }
-              className="resize-none rounded-xl border-[1.5px] border-line bg-[#fdfcff] px-3.5 py-2.5 text-[13px] leading-relaxed outline-none placeholder:text-faint focus:border-brand-500"
+              className="resize-none rounded-xl border-[1.5px] border-line bg-surface-2 px-3.5 py-2.5 text-[13px] leading-relaxed outline-none placeholder:text-faint focus:border-brand-500"
             />
           </div>
 
           {/* comments */}
-          <div className="flex flex-col gap-3 border-t border-[#f4f1fc] pt-4">
+          <div className="flex flex-col gap-3 border-t border-line-soft pt-4">
             <span className="text-xs font-extrabold text-faint">
               Comments {comments ? `· ${comments.length}` : ''}
             </span>
@@ -159,7 +159,7 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
           </div>
         </div>
 
-        <form onSubmit={postComment} className="shrink-0 border-t border-[#f4f1fc] px-5 py-3">
+        <form onSubmit={postComment} className="shrink-0 border-t border-line-soft px-5 py-3">
           {commentError && (
             <p className="mb-2 text-[11.5px] font-bold text-red-600">{commentError}</p>
           )}
@@ -180,7 +180,7 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
           </div>
         </form>
 
-        <div className="shrink-0 border-t border-[#f4f1fc] px-5 py-3">
+        <div className="shrink-0 border-t border-line-soft px-5 py-3">
           <Button variant="danger" onClick={onDelete} className="h-9">
             <IconTrash size={14} /> Delete task
           </Button>

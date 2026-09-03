@@ -94,7 +94,10 @@ export const markRead = (id) => api.patch(`/notifications/${id}/read`).then(data
 export const markAllRead = () => api.post('/notifications/read-all').then(data)
 
 // --- analytics (admin only) ---
-export const getAnalytics = (workspaceId) => api.get(`/analytics/${workspaceId}`).then(data)
+export const getAnalytics = (workspaceId, params = {}) =>
+  api.get(`/analytics/${workspaceId}`, { params }).then(data)
+export const getMemberReport = (workspaceId, userId, params = {}) =>
+  api.get(`/analytics/${workspaceId}/member/${userId}`, { params }).then(data)
 
 // --- settings ---
 export const getPrefs = () => api.get('/settings/prefs').then(data)
