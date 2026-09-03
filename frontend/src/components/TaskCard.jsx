@@ -63,9 +63,9 @@ export default function TaskCard({ task, onMove, onOpen, columns, selected, onSe
             <span
               className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold ${
                 due.overdue
-                  ? 'bg-red-100 text-red-700'
+                  ? 'bg-danger-soft text-danger-ink'
                   : due.soon
-                    ? 'bg-amber-100 text-amber-700'
+                    ? 'bg-warn-soft text-warn-ink'
                     : 'bg-surface-3 text-muted'
               }`}
             >

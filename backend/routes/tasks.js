@@ -50,7 +50,7 @@ function timestampsFor(task, nextStatus, st) {
 /* ------------------------------- create ------------------------------- */
 
 router.post('/', async (req, res) => {
-  const { workspaceId, description, priority, dueDate, assignedToId, status, estimateHours, labelIds, sprintId } = req.body
+  const { workspaceId, description, priority, dueDate, assignedToId, status, estimateHours, actualHours, labelIds, sprintId } = req.body
   if (!workspaceId) return res.status(400).json({ error: 'workspaceId is required' })
 
   const t = text(req.body.title, { max: 200, field: 'Title', required: true })
@@ -71,6 +71,7 @@ router.post('/', async (req, res) => {
       status: useStatus,
       priority: priority || 'medium',
       estimateHours: Number.isFinite(Number(estimateHours)) && estimateHours !== null ? Number(estimateHours) : null,
+      actualHours: Number.isFinite(Number(actualHours)) && actualHours !== null && actualHours !== '' ? Number(actualHours) : null,
       dueDate: dueDate ? new Date(dueDate) : null,
       completedAt: st.isDone(useStatus) ? new Date() : null,
       workspaceId,
@@ -189,7 +190,7 @@ router.patch('/:id', async (req, res) => {
   if (result.error) return res.status(result.status).json({ error: result.error })
   const before = result.task
 
-  const { title, description, status, priority, dueDate, assignedToId, estimateHours, labelIds, sprintId } = req.body
+  const { title, description, status, priority, dueDate, assignedToId, estimateHours, actualHours, labelIds, sprintId } = req.body
   const st = await statusesFor(before.workspaceId)
 
   const data = {}
@@ -201,6 +202,9 @@ router.patch('/:id', async (req, res) => {
   if (sprintId !== undefined) data.sprintId = sprintId || null
   if (estimateHours !== undefined) {
     data.estimateHours = estimateHours === null || estimateHours === '' ? null : Number(estimateHours)
+  }
+  if (actualHours !== undefined) {
+    data.actualHours = actualHours === null || actualHours === '' ? null : Number(actualHours)
   }
   if (status !== undefined) {
     if (!st.valid(status)) return res.status(400).json({ error: 'That status does not exist in this workspace' })

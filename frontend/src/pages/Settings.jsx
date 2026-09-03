@@ -86,7 +86,7 @@ function AccountSection() {
           Save name
         </Button>
         {msg && (
-          <span className={`pb-3 text-xs font-bold ${msg.ok ? 'text-green-600' : 'text-red-600'}`}>{msg.text}</span>
+          <span className={`pb-3 text-xs font-bold ${msg.ok ? 'text-success' : 'text-danger'}`}>{msg.text}</span>
         )}
       </div>
 
@@ -102,7 +102,7 @@ function AccountSection() {
             {busy ? 'Saving…' : 'Update password'}
           </Button>
           {pwMsg && (
-            <span className={`text-xs font-bold ${pwMsg.ok ? 'text-green-600' : 'text-red-600'}`}>{pwMsg.text}</span>
+            <span className={`text-xs font-bold ${pwMsg.ok ? 'text-success' : 'text-danger'}`}>{pwMsg.text}</span>
           )}
         </div>
       </form>
@@ -189,7 +189,7 @@ export default function Settings() {
   return (
     <>
       <PageHeader title="Settings">
-        {saved && <span className="text-[12.5px] font-bold text-green-600">{saved}</span>}
+        {saved && <span className="text-[12.5px] font-bold text-success">{saved}</span>}
       </PageHeader>
 
       <div className="overflow-y-auto p-7">
@@ -203,10 +203,10 @@ export default function Settings() {
 
           <div
             className={`mt-4 flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 ${
-              emailConfigured ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'
+              emailConfigured ? 'border-success-line bg-success-soft' : 'border-warn-line bg-warn-soft'
             }`}
           >
-            <IconMail size={16} className={emailConfigured ? 'text-green-600' : 'text-amber-600'} />
+            <IconMail size={16} className={emailConfigured ? 'text-success' : 'text-warn'} />
             <span className="flex-1 text-[12.5px] font-semibold text-ink-soft">
               {emailConfigured
                 ? 'Email delivery is configured — real emails will be sent.'

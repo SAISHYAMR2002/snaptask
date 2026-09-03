@@ -89,9 +89,9 @@ export default function Dashboard() {
         {/* stat tiles */}
         <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
           <Tile label="My open tasks" value={stats.open} cls="bg-brand-50 text-brand-700" />
-          <Tile label="Due this week" value={stats.week} cls="bg-amber-50 text-amber-700" />
-          <Tile label="Overdue" value={stats.overdue} cls="bg-red-50 text-red-700" />
-          <Tile label="Completed" value={stats.done} cls="bg-green-50 text-green-700" />
+          <Tile label="Due this week" value={stats.week} cls="bg-warn-soft text-warn-ink" />
+          <Tile label="Overdue" value={stats.overdue} cls="bg-danger-soft text-danger-ink" />
+          <Tile label="Completed" value={stats.done} cls="bg-success-soft text-success-ink" />
         </div>
 
         <div className="flex flex-col gap-4 lg:flex-row">
@@ -153,7 +153,7 @@ export default function Dashboard() {
                       <span className="truncate">{t.workspace.name}</span>
                     </span>
                     <PriorityDot value={t.priority} />
-                    <span className={`font-semibold ${due?.overdue ? 'text-red-600' : due?.soon ? 'text-amber-600' : 'text-muted'}`}>
+                    <span className={`font-semibold ${due?.overdue ? 'text-danger' : due?.soon ? 'text-warn' : 'text-muted'}`}>
                       {due?.label || '—'}
                     </span>
                     <span><StatusBadge value={t.status} /></span>

@@ -321,7 +321,7 @@ function NewPollModal({ open, onClose, onCreate }) {
             <button
               type="button"
               onClick={() => setOptions([...options, ''])}
-              className="self-start text-[12.5px] font-bold text-brand-600 hover:text-brand-700"
+              className="self-start text-[12.5px] font-bold text-brand-700 hover:text-brand-700"
             >
               + Add option
             </button>
@@ -331,7 +331,7 @@ function NewPollModal({ open, onClose, onCreate }) {
           <input type="checkbox" checked={multiple} onChange={(e) => setMultiple(e.target.checked)} />
           Let people pick more than one
         </label>
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create poll'}</Button>

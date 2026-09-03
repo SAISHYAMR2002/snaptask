@@ -76,7 +76,7 @@ export default function ColumnManager({ open, onClose, workspaceId, statuses = [
               <button
                 onClick={() => wrap(() => deleteStatus(workspaceId, s.id))}
                 disabled={busy}
-                className="shrink-0 text-faint hover:text-red-600 disabled:opacity-40"
+                className="shrink-0 text-faint hover:text-danger disabled:opacity-40"
                 aria-label={`Delete ${s.label}`}
               >
                 <IconTrash size={14} />
@@ -111,7 +111,7 @@ export default function ColumnManager({ open, onClose, workspaceId, statuses = [
           </Button>
         </form>
 
-        {err && <p className="text-xs font-bold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-bold text-danger">{err}</p>}
 
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>

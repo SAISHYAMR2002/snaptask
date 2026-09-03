@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext'
 /* ---------- the visual blocks the engine can return ---------- */
 
 function StatsBlock({ items }) {
-  const tone = { red: 'bg-red-50 text-red-700', amber: 'bg-amber-50 text-amber-700', green: 'bg-green-50 text-green-700' }
+  const tone = { red: 'bg-danger-soft text-danger-ink', amber: 'bg-warn-soft text-warn-ink', green: 'bg-success-soft text-success-ink' }
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
       {items.map((s, i) => (
@@ -70,7 +70,7 @@ function TasksBlock({ items }) {
             <span className="min-w-0 flex-1 truncate font-medium">{t.title}</span>
             {t.assignee && <span className="shrink-0 text-[11.5px] text-faint">{t.assignee}</span>}
             {due && (
-              <span className={`shrink-0 text-[11.5px] font-bold ${overdue ? 'text-red-600' : 'text-muted'}`}>
+              <span className={`shrink-0 text-[11.5px] font-bold ${overdue ? 'text-danger' : 'text-muted'}`}>
                 {due.label}
               </span>
             )}
@@ -187,7 +187,7 @@ export default function Assistant() {
                     S
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-3">
-                    <div className={`text-[13.5px] leading-relaxed ${t.error ? 'text-red-600' : 'text-ink-soft'}`}>
+                    <div className={`text-[13.5px] leading-relaxed ${t.error ? 'text-danger' : 'text-ink-soft'}`}>
                       <RichText text={t.text} />
                     </div>
                     {t.blocks?.map((b, j) => <Block key={j} block={b} />)}

@@ -16,11 +16,11 @@ import {
 
 const TYPES = {
   assigned: { Icon: IconBoard, bg: 'bg-brand-100', fg: 'text-brand-700' },
-  mention: { Icon: IconAt, bg: 'bg-pink-100', fg: 'text-pink-600' },
-  comment: { Icon: IconMessage, bg: 'bg-blue-100', fg: 'text-blue-600' },
-  status: { Icon: IconCheck, bg: 'bg-green-100', fg: 'text-green-600' },
-  due: { Icon: IconClock, bg: 'bg-amber-100', fg: 'text-amber-600' },
-  overdue: { Icon: IconAlert, bg: 'bg-red-100', fg: 'text-red-600' },
+  mention: { Icon: IconAt, bg: 'bg-info-soft', fg: 'text-info-ink' },
+  comment: { Icon: IconMessage, bg: 'bg-info-soft', fg: 'text-info' },
+  status: { Icon: IconCheck, bg: 'bg-success-soft', fg: 'text-success' },
+  due: { Icon: IconClock, bg: 'bg-warn-soft', fg: 'text-warn' },
+  overdue: { Icon: IconAlert, bg: 'bg-danger-soft', fg: 'text-danger' },
 }
 
 const FILTERS = [
@@ -78,7 +78,7 @@ export default function Inbox() {
   return (
     <>
       <PageHeader title="Inbox">
-        <button onClick={clearAll} className="text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
+        <button onClick={clearAll} className="text-[12.5px] font-bold text-brand-700 hover:text-brand-700">
           Mark all as read
         </button>
       </PageHeader>
@@ -99,7 +99,7 @@ export default function Inbox() {
         </div>
 
         <div className="flex w-full max-w-3xl items-center gap-2.5 rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2.5">
-          <IconMail size={16} className="text-brand-600" />
+          <IconMail size={16} className="text-brand-700" />
           <span className="text-[12.5px] font-semibold text-ink-soft">
             Reminders and emails are controlled in <b>Settings → Notifications &amp; email</b>.
           </span>

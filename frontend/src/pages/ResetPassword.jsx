@@ -72,14 +72,14 @@ export default function ResetPassword() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy ? 'Saving…' : 'Set new password'}
         </Button>
       </form>
 
       <p className="mt-5 text-center text-[13px] text-muted">
-        <Link to="/login" className="font-bold text-brand-600 hover:text-brand-700">Back to log in</Link>
+        <Link to="/login" className="font-bold text-brand-700 hover:text-brand-700">Back to log in</Link>
       </p>
     </AuthShell>
   )

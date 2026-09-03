@@ -135,7 +135,7 @@ export default function ChatMessage({ message: m, members, onReact, onVote }) {
           {!showPicker && (
             <button
               onClick={() => setShowPicker(true)}
-              className="px-1.5 text-[13px] font-extrabold text-faint hover:text-brand-600"
+              className="px-1.5 text-[13px] font-extrabold text-faint hover:text-brand-700"
               title="More"
             >
               +

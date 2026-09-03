@@ -101,7 +101,7 @@ export default function NewTaskModal({ open, onClose, members = [], onCreate }) 
           />
         </div>
 
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel

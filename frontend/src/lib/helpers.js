@@ -2,8 +2,8 @@
 
 export const STATUSES = [
   { key: 'todo', label: 'To Do', dot: '#7c3aed', chip: 'bg-brand-100 text-brand-700' },
-  { key: 'in-progress', label: 'In Progress', dot: '#f59e0b', chip: 'bg-amber-100 text-amber-700' },
-  { key: 'done', label: 'Done', dot: '#22c55e', chip: 'bg-green-100 text-green-700' },
+  { key: 'in-progress', label: 'In Progress', dot: '#f59e0b', chip: 'bg-warn-soft text-warn-ink' },
+  { key: 'done', label: 'Done', dot: '#22c55e', chip: 'bg-success-soft text-success-ink' },
 ]
 
 export const statusMeta = (key) => STATUSES.find((s) => s.key === key) || STATUSES[0]
@@ -20,10 +20,10 @@ export const priorityMeta = (key) => PRIORITIES.find((p) => p.key === key) || PR
 // correctly in both themes — each name maps to a light and a dark treatment.
 export const LABEL_COLORS = [
   { key: 'violet', swatch: '#7c3aed', chip: 'bg-brand-100 text-brand-700' },
-  { key: 'blue', swatch: '#2563eb', chip: 'bg-blue-100 text-blue-700' },
-  { key: 'green', swatch: '#16a34a', chip: 'bg-green-100 text-green-700' },
-  { key: 'amber', swatch: '#d97706', chip: 'bg-amber-100 text-amber-700' },
-  { key: 'red', swatch: '#dc2626', chip: 'bg-red-100 text-red-700' },
+  { key: 'blue', swatch: '#2563eb', chip: 'bg-info-soft text-info-ink' },
+  { key: 'green', swatch: '#16a34a', chip: 'bg-success-soft text-success-ink' },
+  { key: 'amber', swatch: '#d97706', chip: 'bg-warn-soft text-warn-ink' },
+  { key: 'red', swatch: '#dc2626', chip: 'bg-danger-soft text-danger-ink' },
   { key: 'gray', swatch: '#64748b', chip: 'bg-surface-3 text-muted' },
 ]
 export const labelMeta = (key) => LABEL_COLORS.find((c) => c.key === key) || LABEL_COLORS[0]

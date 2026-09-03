@@ -61,7 +61,7 @@ export default function Signup() {
           value={form.password}
           onChange={set('password')}
         />
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy ? 'Creating…' : 'Create account'}
         </Button>
@@ -69,7 +69,7 @@ export default function Signup() {
 
       <p className="mt-5 text-center text-[13px] text-muted">
         Already have an account?{' '}
-        <Link to="/login" className="font-bold text-brand-600 hover:text-brand-700">
+        <Link to="/login" className="font-bold text-brand-700 hover:text-brand-700">
           Log in
         </Link>
       </p>

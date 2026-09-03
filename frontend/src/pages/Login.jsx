@@ -53,12 +53,12 @@ export default function Login() {
           />
           <Link
             to="/forgot-password"
-            className="mt-1.5 block text-right text-xs font-bold text-brand-600 hover:text-brand-700"
+            className="mt-1.5 block text-right text-xs font-bold text-brand-700 hover:text-brand-700"
           >
             Forgot password?
           </Link>
         </div>
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy ? 'Logging in…' : 'Log in'}
         </Button>
@@ -66,7 +66,7 @@ export default function Login() {
 
       <p className="mt-5 text-center text-[13px] text-muted">
         New here?{' '}
-        <Link to="/signup" className="font-bold text-brand-600 hover:text-brand-700">
+        <Link to="/signup" className="font-bold text-brand-700 hover:text-brand-700">
           Create an account
         </Link>
       </p>

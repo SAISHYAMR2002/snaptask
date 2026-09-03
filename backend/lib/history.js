@@ -16,6 +16,7 @@ const LABELS = {
   due: 'changed the due date',
   priority: 'changed priority',
   estimate: 'changed the estimate',
+  actual: 'logged time spent',
   title: 'renamed the task',
   description: 'edited the description',
   label: 'changed labels',
@@ -55,6 +56,7 @@ function diffTask(before, after, resolve = {}) {
   push('status', before.status, after.status)
   push('priority', before.priority, after.priority)
   push('estimate', before.estimateHours, after.estimateHours)
+  push('actual', before.actualHours, after.actualHours)
 
   const d = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null)
   push('due', d(before.dueDate), d(after.dueDate))
@@ -89,6 +91,10 @@ function describe(e) {
     if (!e.newValue) return 'removed the estimate'
     return `set the estimate to ${e.newValue}h`
   }
+  if (e.type === 'actual') {
+    if (!e.newValue) return 'cleared the time spent'
+    return `logged ${e.newValue}h spent`
+  }
   if (e.type === 'title') return `renamed it to "${e.newValue}"`
   if (e.type === 'label') return e.newValue ? `added the label "${e.newValue}"` : `removed the label "${e.oldValue}"`
   return base
@@ -117,4 +123,40 @@ function taskMetrics(task, events = []) {
   }
 }
 
-module.exports = { record, diffTask, describe, taskMetrics, LABELS }
+/**
+ * How a task's real effort compared to what was planned.
+ *
+ * Only tasks with BOTH an estimate and logged time can answer this. Falling
+ * back to elapsed calendar time would be worse than saying nothing: a task
+ * started on Friday and finished on Monday shows 72 hours of "effort" that
+ * nobody worked, and that number would then flow into every average on the
+ * page. Coverage is reported instead, so a thin sample is visible rather than
+ * disguised.
+ *
+ *   ratio  > 1  took longer than planned
+ *   ratio == 1  on the money
+ *   ratio  < 1  finished quicker
+ */
+function variance(task) {
+  const est = task.estimateHours
+  const act = task.actualHours
+  if (!est || est <= 0 || act == null || act < 0) return null
+  return {
+    estimateHours: est,
+    actualHours: act,
+    deltaHours: Number((act - est).toFixed(2)),
+    ratio: Number((act / est).toFixed(3)),
+    // 15% either way is noise, not a planning problem
+    verdict: act / est > 1.15 ? 'over' : act / est < 0.85 ? 'under' : 'on-target',
+  }
+}
+
+/** Median, not mean: one 10x outlier should not redefine how a team plans. */
+function median(values) {
+  const v = values.filter((n) => n != null).sort((a, b) => a - b)
+  if (!v.length) return null
+  const mid = Math.floor(v.length / 2)
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2
+}
+
+module.exports = { record, diffTask, describe, taskMetrics, variance, median, LABELS }

@@ -48,6 +48,7 @@ export default function TaskDetailPanel({
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
   const [estimate, setEstimate] = useState(task.estimateHours ?? '')
+  const [actual, setActual] = useState(task.actualHours ?? '')
   const [tab, setTab] = useState('comments')
 
   const [comments, setComments] = useState(null)
@@ -64,6 +65,7 @@ export default function TaskDetailPanel({
     setTitle(task.title)
     setDescription(task.description || '')
     setEstimate(task.estimateHours ?? '')
+    setActual(task.actualHours ?? '')
     setComments(null)
     setActivity(null)
     setTab('comments')
@@ -84,6 +86,15 @@ export default function TaskDetailPanel({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, labelOpen])
+
+  // estimate vs reality, stated as a percentage rather than a ratio
+  const variance = (() => {
+    const e = task.estimateHours
+    const a = task.actualHours
+    if (!e || e <= 0 || a == null) return null
+    const r = a / e
+    return { pct: Math.round(Math.abs(r - 1) * 100), over: r > 1.15, under: r < 0.85 }
+  })()
 
   const due = formatDue(task.dueDate)
   const dueValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ''
@@ -215,7 +226,7 @@ export default function TaskDetailPanel({
                   className={fieldSelect}
                 />
                 {due?.overdue && task.status !== 'done' && (
-                  <span className="text-[11px] font-bold text-red-600">Overdue</span>
+                  <span className="text-[11px] font-bold text-danger">Overdue</span>
                 )}
               </div>
             </Row>
@@ -233,8 +244,41 @@ export default function TaskDetailPanel({
                     if (next !== (task.estimateHours ?? null)) onPatch({ estimateHours: next })
                   }}
                   className={`${fieldSelect} w-20`}
+                  title="How long you think this will take"
                 />
-                <span className="text-[12px] font-semibold text-faint">hours</span>
+                <span className="text-[12px] font-semibold text-faint">hours planned</span>
+              </div>
+            </Row>
+            <Row label="Time spent">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={actual}
+                  placeholder="—"
+                  onChange={(e) => setActual(e.target.value)}
+                  onBlur={() => {
+                    const next = actual === '' ? null : Number(actual)
+                    if (next !== (task.actualHours ?? null)) onPatch({ actualHours: next })
+                  }}
+                  className={`${fieldSelect} w-20`}
+                  title="How long it actually took"
+                />
+                <span className="text-[12px] font-semibold text-faint">hours actually</span>
+                {/* The comparison is the point of collecting this at all, so
+                    show it here rather than only in a report nobody opens. */}
+                {variance && (
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 text-[11px] font-extrabold ${
+                      variance.over ? 'bg-danger-soft text-danger-ink'
+                        : variance.under ? 'bg-info-soft text-info-ink'
+                          : 'bg-success-soft text-success-ink'
+                    }`}
+                  >
+                    {variance.over ? `${variance.pct}% over` : variance.under ? `${variance.pct}% under` : 'on target'}
+                  </span>
+                )}
               </div>
             </Row>
           </div>
@@ -261,7 +305,7 @@ export default function TaskDetailPanel({
               <div className="relative">
                 <button
                   onClick={() => setLabelOpen((v) => !v)}
-                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-line px-2 py-0.5 text-[11.5px] font-bold text-muted hover:border-brand-500 hover:text-brand-600"
+                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-line px-2 py-0.5 text-[11.5px] font-bold text-muted hover:border-brand-500 hover:text-brand-700"
                 >
                   <IconPlus size={10} /> Label
                 </button>
@@ -342,7 +386,7 @@ export default function TaskDetailPanel({
                   </span>
                   <button
                     onClick={() => removeSubtask(s)}
-                    className="shrink-0 text-faint opacity-0 transition group-hover:opacity-100 hover:text-red-600"
+                    className="shrink-0 text-faint opacity-0 transition group-hover:opacity-100 hover:text-danger"
                     aria-label="Delete item"
                   >
                     <IconX size={13} />
@@ -404,7 +448,7 @@ export default function TaskDetailPanel({
         {tab === 'comments' && (
           <form onSubmit={postComment} className="shrink-0 border-t border-line-soft px-5 py-3">
             {commentError && (
-              <p className="mb-2 text-[11.5px] font-bold text-red-600">{commentError}</p>
+              <p className="mb-2 text-[11.5px] font-bold text-danger">{commentError}</p>
             )}
             <div className="flex items-center gap-2 rounded-xl border-[1.5px] border-line px-3 py-2 focus-within:border-brand-500">
               <input
@@ -528,7 +572,7 @@ function LabelPicker({ all, selected, onToggle, onCreate, onClose }) {
                 style={{ background: labelMeta(l.color).swatch }}
               />
               <span className="flex-1 truncate text-[12.5px] font-semibold">{l.name}</span>
-              {on && <IconCheck size={12} className="text-brand-600" />}
+              {on && <IconCheck size={12} className="text-brand-700" />}
             </button>
           )
         })}

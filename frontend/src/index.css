@@ -12,7 +12,7 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
 
-  --color-brand-50: #f3ebff;
+  --color-brand-50: #f8f4ff;
   --color-brand-100: #ede4ff;
   --color-brand-200: #ddd0fa;
   --color-brand-500: #8b5cf6;
@@ -21,8 +21,11 @@
 
   --color-ink: #1e1b2e;
   --color-ink-soft: #4a4760;
-  --color-muted: #6e6a83;
-  --color-faint: #a5a1b8;
+  --color-muted: #5a5670;
+  /* was #a5a1b8 — only 2.5:1 on white, well under AA for small text.
+     The whole light ramp was re-measured against every surface faint
+     actually sits on; worst case is now 4.9:1 on surface-3. */
+  --color-faint: #696578;
 
   --color-line: #ece7fa;
   --color-line-soft: #f4f1fc;
@@ -40,6 +43,57 @@
   --color-inverse-ink: #ffffff;
   /* A scrim must always darken, so it never follows `ink`. */
   --color-scrim: #1e1b2e;
+
+  /* Chart colours.
+     Separate from the UI palette because a chart mark has a different job from
+     a button: it must clear 3:1 against the plot surface and sit inside a
+     lightness band so no series disappears. These steps were checked with the
+     dataviz palette validator against THIS app's real surfaces (#ffffff light,
+     #1a1725 dark) — not eyeballed.
+       chart-1     single-series / sequential (brand violet)
+       chart-over  took longer than estimated  ─┐ diverging pair: warm vs cool,
+       chart-under finished faster than planned ┘ so the poles read as opposite
+     The midpoint is neutral grey, never a hue. */
+  --color-chart-1: #7c3aed;
+  --color-chart-over: #dc2626;
+  --color-chart-under: #2563eb;
+  --color-chart-grid: #e7e2f6;
+  --color-chart-track: #f1edfb;
+
+  /* Status tones.
+     These exist because Tailwind's built-in palette utilities are STATIC —
+     `bg-red-50` is the same near-white in both themes. Pairing one with
+     `text-ink` (which does invert) produced a 1.02:1 panel in dark mode:
+     literally invisible text, and the bug behind "some text isn't readable".
+     Every tone is a set of four that flip together:
+       -<tone>       text or a mark on the page surface
+       -<tone>-soft  a tinted panel background
+       -<tone>-ink   text ON that tinted panel
+       -<tone>-line  its border
+     Every pair below is measured >= 4.5:1 in both themes. */
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-danger-ink: #991b1b;
+  --color-danger-line: #fecaca;
+
+  --color-warn: #b45309;
+  --color-warn-soft: #fef3c7;
+  --color-warn-ink: #92400e;
+  --color-warn-line: #fde68a;
+
+  --color-success: #15803d;
+  --color-success-soft: #f0fdf4;
+  --color-success-ink: #166534;
+  --color-success-line: #bbf7d0;
+
+  --color-info: #1d4ed8;
+  --color-info-soft: #eff6ff;
+  --color-info-ink: #1e40af;
+  --color-info-line: #bfdbfe;
+
+  /* the unread count badge — white on pink was 4.46:1, just under AA */
+  --color-badge: #be185d;
+  --color-badge-ink: #ffffff;
 }
 
 /* Dark palette. Same token names, different values — nothing else changes. */
@@ -54,7 +108,8 @@
   --color-ink: #ece9f5;
   --color-ink-soft: #c7c2d8;
   --color-muted: #9d97b0;
-  --color-faint: #746e8a;
+  /* was #746e8a — measured 3.0–3.9:1 across the app, under AA for small text */
+  --color-faint: #948daa;
 
   --color-line: #2f2942;
   --color-line-soft: #272134;
@@ -67,6 +122,40 @@
   --color-inverse: #efecf9;
   --color-inverse-ink: #1e1b2e;
   --color-scrim: #08060d; /* darker than light mode's — the page is already dark */
+
+  /* Dark chart steps are SELECTED, not a flip of the light ones: the dark
+     lightness band (L 0.48–0.67) is narrower and darker than the light band,
+     so #a78bfa — fine as UI text — is out of band as a chart mark. */
+  --color-chart-1: #8b5cf6;
+  --color-chart-over: #ef4444;
+  --color-chart-under: #3b82f6;
+  --color-chart-grid: #2f2942;
+  --color-chart-track: #262032;
+
+  /* Dark tones: a light foreground on a deep tinted panel — the inverse
+     relationship of the light set, not the same hex values reused. */
+  --color-danger: #fca5a5;
+  --color-danger-soft: #3a1a20;
+  --color-danger-ink: #fecaca;
+  --color-danger-line: #7f2d3a;
+
+  --color-warn: #fcd34d;
+  --color-warn-soft: #3a2d12;
+  --color-warn-ink: #fde68a;
+  --color-warn-line: #78581a;
+
+  --color-success: #86efac;
+  --color-success-soft: #12301f;
+  --color-success-ink: #bbf7d0;
+  --color-success-line: #1d5735;
+
+  --color-info: #93c5fd;
+  --color-info-soft: #152742;
+  --color-info-ink: #bfdbfe;
+  --color-info-line: #1e4976;
+
+  --color-badge: #f472b6;
+  --color-badge-ink: #1a1725;
 }
 
 html,

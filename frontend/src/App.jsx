@@ -10,6 +10,8 @@ import Board from './pages/Board'
 import Chat from './pages/Chat'
 import Members from './pages/Members'
 import Analytics from './pages/Analytics'
+import MemberReport from './pages/MemberReport'
+import Notes from './pages/Notes'
 import Assistant from './pages/Assistant'
 import Inbox from './pages/Inbox'
 import Settings from './pages/Settings'
@@ -54,6 +56,10 @@ export default function App() {
               <Route path="/workspace/:id/chat/:channelId" element={<Chat />} />
               <Route path="/workspace/:id/members" element={<Members />} />
               <Route path="/workspace/:id/analytics" element={<Analytics />} />
+              {/* A member may open their OWN report; the API refuses anyone
+                  else's unless you are an admin, so the route stays open. */}
+              <Route path="/workspace/:id/analytics/:userId" element={<MemberReport />} />
+              <Route path="/workspace/:id/notes" element={<Notes />} />
               <Route path="/workspace/:id/assistant" element={<Assistant />} />
             </Route>
           </Route>

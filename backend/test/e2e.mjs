@@ -654,6 +654,82 @@ for (const scope of ['members', 'summary', 'tasks']) {
 }
 ok('members cannot export', (await req('GET', `/analytics/${wid}/export?scope=members`, { token: member.token })).status === 403)
 
+/* ══════════════════ 10b. estimate vs actual ══════════════════ */
+section('10b. Estimate vs actual (planning accuracy)')
+
+// three finished tasks: one over, one under, one on the money
+const accTasks = []
+for (const [title, est, act] of [['Over by half', 4, 6], ['Bang on', 5, 5], ['Came in early', 8, 4]]) {
+  const t = (await req('POST', '/tasks', { token: owner.token, body: { workspaceId: wid, title, estimateHours: est, assignedToId: owner.id } })).data.task
+  await req('PATCH', `/tasks/${t.id}`, { token: owner.token, body: { actualHours: act, status: 'done' } })
+  accTasks.push(t)
+}
+ok('actualHours is stored', (await req('GET', `/tasks/${accTasks[0].id}`, { token: owner.token })).data.task.actualHours === 6)
+
+r = await req('GET', `/analytics/${wid}?preset=30d`, { token: owner.token })
+const acc = r.data.accuracy
+ok('accuracy block is present', !!acc, JSON.stringify(Object.keys(r.data)))
+ok('only tasks with BOTH numbers are measured', acc.measured === 3, `${acc.measured}`)
+ok('over / on-target / under are classified', acc.overCount === 1 && acc.onTargetCount === 1 && acc.underCount === 1, JSON.stringify([acc.overCount, acc.onTargetCount, acc.underCount]))
+ok('median ratio is the middle value, not the mean', acc.medianRatio === 1, `${acc.medianRatio}`)
+ok('hour totals add up', acc.estimatedHours === 17 && acc.actualHours === 15, `${acc.estimatedHours}/${acc.actualHours}`)
+ok('the worst overrun is listed with its delta', acc.biggestOverruns[0]?.deltaHours === 2, JSON.stringify(acc.biggestOverruns[0]))
+ok('there is a plain-English verdict', typeof acc.verdict === 'string' && acc.verdict.length > 10, acc.verdict)
+
+// an estimate with no logged time must NOT be treated as accurate
+const unmeasured = (await req('POST', '/tasks', { token: owner.token, body: { workspaceId: wid, title: 'Estimated but never logged', estimateHours: 3 } })).data.task
+await req('PATCH', `/tasks/${unmeasured.id}`, { token: owner.token, body: { status: 'done' } })
+r = await req('GET', `/analytics/${wid}?preset=30d`, { token: owner.token })
+ok('an estimate with no logged time is excluded, not assumed', r.data.accuracy.measured === 3, `${r.data.accuracy.measured}`)
+ok('...but it still counts toward coverage', r.data.accuracy.withEstimate >= 4, `${r.data.accuracy.withEstimate}`)
+ok('sprints carry state and progress for the picker', r.data.sprints.every((s) => s.state && typeof s.percentDone === 'number'), JSON.stringify(r.data.sprints?.[0]))
+
+r = await req('GET', `/analytics/${wid}/member/${owner.id}?preset=30d`, { token: owner.token })
+ok('member report carries plain-English highlights', Array.isArray(r.data.highlights) && r.data.highlights.length > 0)
+ok('member report compares against the team MEDIAN', r.data.teamMedian && typeof r.data.teamMedian.memberCount === 'number', JSON.stringify(r.data.teamMedian))
+ok('member report includes their own trend', Array.isArray(r.data.daily) && r.data.daily.length > 0)
+ok('member report lists the slowest tasks', Array.isArray(r.data.slowest))
+ok('a member can open their OWN report', (await req('GET', `/analytics/${wid}/member/${member.id}?preset=30d`, { token: member.token })).status === 200)
+ok("a member cannot open someone else's", (await req('GET', `/analytics/${wid}/member/${owner.id}?preset=30d`, { token: member.token })).status === 403)
+ok("a stranger cannot open anyone's", (await req('GET', `/analytics/${wid}/member/${owner.id}`, { token: stranger.token })).status !== 200)
+
+/* ══════════════════ 10c. private notes ══════════════════ */
+section('10c. Private notes (author-only)')
+
+const mkNote = (token, body, extra = {}) =>
+  req('POST', '/notes', { token, body: { workspaceId: wid, body, ...extra } })
+
+r = await mkNote(owner.token, 'Mia was blocked on the API all week.', { subjectId: member.id })
+const noteId = r.data.note?.id
+ok('a note can be written about a member', r.status === 201 && r.data.note.subject.name === member.name, JSON.stringify(r.data))
+ok('empty note rejected', (await mkNote(owner.token, '   ')).status === 400)
+ok('a note about a non-member is rejected', (await mkNote(owner.token, 'x', { subjectId: stranger.id })).status === 400)
+ok('a stranger cannot write in this workspace', (await mkNote(stranger.token, 'x')).status === 403)
+
+// this block IS the feature: nobody but the author may ever see the row
+r = await req('GET', `/notes?workspaceId=${wid}`, { token: owner.token })
+ok('the author sees their own note', r.data.notes.length === 1)
+ok("an ADMIN sees none of the owner's notes", (await req('GET', `/notes?workspaceId=${wid}`, { token: admin.token })).data.notes.length === 0)
+ok('the SUBJECT sees none of them', (await req('GET', `/notes?workspaceId=${wid}`, { token: member.token })).data.notes.length === 0)
+ok('the subject cannot edit one by id', (await req('PATCH', `/notes/${noteId}`, { token: member.token, body: { body: 'hacked' } })).status === 404)
+ok('an admin cannot edit one by id', (await req('PATCH', `/notes/${noteId}`, { token: admin.token, body: { body: 'hacked' } })).status === 404)
+ok('the subject cannot delete one by id', (await req('DELETE', `/notes/${noteId}`, { token: member.token })).status === 404)
+ok('the note survived every attempt', (await req('GET', `/notes?workspaceId=${wid}`, { token: owner.token })).data.notes[0].body.startsWith('Mia was blocked'))
+
+ok('the author can edit it', (await req('PATCH', `/notes/${noteId}`, { token: owner.token, body: { body: 'Updated note', pinned: true } })).data.note.body === 'Updated note')
+r = await req('PATCH', `/notes/${noteId}`, { token: owner.token, body: { remindAt: new Date(Date.now() + 3600000).toISOString() } })
+ok('a reminder can be attached', !!r.data.note.remindAt)
+r = await req('GET', '/notes/reminders', { token: owner.token })
+ok('the reminders list shows only my own', r.data.notes.length === 1 && r.data.notes[0].id === noteId)
+ok("another user's reminder list is empty", (await req('GET', '/notes/reminders', { token: admin.token })).data.notes.length === 0)
+
+// filtering by subject must not become a way across authors
+await mkNote(admin.token, "Admin's own note about Mia", { subjectId: member.id })
+ok('filtering by subject still returns only MY notes', (await req('GET', `/notes?workspaceId=${wid}&subjectId=${member.id}`, { token: owner.token })).data.notes.length === 1)
+ok('the other author sees only theirs', (await req('GET', `/notes?workspaceId=${wid}&subjectId=${member.id}`, { token: admin.token })).data.notes.length === 1)
+ok('notes require auth', (await req('GET', `/notes?workspaceId=${wid}`)).status === 401)
+ok('the author can delete their own', (await req('DELETE', `/notes/${noteId}`, { token: owner.token })).status === 200)
+
 /* ══════════════════ 11. settings ══════════════════ */
 section('11. Settings & email preferences')
 

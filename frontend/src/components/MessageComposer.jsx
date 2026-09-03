@@ -111,7 +111,7 @@ export default function MessageComposer({ members = [], channelName, onSend, onT
                 <span className="block truncate text-[13px] font-bold">{m.name}</span>
                 <span className="block truncate text-[11px] text-faint">{m.email}</span>
               </span>
-              {i === mention.index && <span className="text-[10px] font-bold text-brand-600">↵</span>}
+              {i === mention.index && <span className="text-[10px] font-bold text-brand-700">↵</span>}
             </button>
           ))}
         </div>

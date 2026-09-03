@@ -132,6 +132,14 @@ export const getAnalytics = (workspaceId, params = {}) =>
 export const getMemberReport = (workspaceId, userId, params = {}) =>
   api.get(`/analytics/${workspaceId}/member/${userId}`, { params }).then(data)
 
+// --- private notes (only ever the caller's own) ---
+export const getNotes = (workspaceId, subjectId) =>
+  api.get('/notes', { params: { workspaceId, ...(subjectId ? { subjectId } : {}) } }).then((r) => r.data.notes)
+export const getNoteReminders = () => api.get('/notes/reminders').then((r) => r.data.notes)
+export const createNote = (payload) => api.post('/notes', payload).then((r) => r.data.note)
+export const updateNote = (id, patch) => api.patch(`/notes/${id}`, patch).then((r) => r.data.note)
+export const deleteNote = (id) => api.delete(`/notes/${id}`).then(data)
+
 // --- settings ---
 export const getPrefs = () => api.get('/settings/prefs').then(data)
 export const updatePrefs = (patch) => api.patch('/settings/prefs', patch).then((r) => r.data.prefs)

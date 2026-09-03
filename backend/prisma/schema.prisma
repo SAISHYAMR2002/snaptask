@@ -37,6 +37,8 @@ model User {
   pollVotes       PollVote[]
   channelReads    ChannelRead[]
   taskEvents      TaskEvent[]
+  notesWritten    PrivateNote[]       @relation("NoteAuthor")
+  notesAbout      PrivateNote[]       @relation("NoteSubject")
 }
 
 /// Single-use tokens for "verify your email" and "reset your password".
@@ -71,6 +73,47 @@ model Workspace {
   labels   Label[]
   statuses WorkspaceStatus[]
   sprints  Sprint[]
+  notes    PrivateNote[]
+}
+
+/// A note only its author can ever read.
+///
+/// Managers keep private observations about the people they work with - "was
+/// blocked on the API all week", "wants more front-end work", "follow up after
+/// leave". That is legitimate and normal, and putting it in the app beats a
+/// scattered notes file, but it MUST NOT be visible to the person it is about
+/// or to anyone else. Every route that touches this model filters on authorId;
+/// there is deliberately no endpoint that lists notes *about* a user.
+///
+/// With `remindAt` set it doubles as a private reminder: the sweep in
+/// lib/reminders.js notifies the author, and nobody else.
+model PrivateNote {
+  id         String    @id @default(cuid())
+  body       String
+  /// optional nudge, delivered to the author only
+  remindAt   DateTime?
+  remindedAt DateTime?
+  pinned     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  /// the only person who can read this row
+  authorId String
+  author   User   @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  /// who the note is about — optional, so a note can just be a note
+  subjectId String?
+  subject   User?   @relation("NoteSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([authorId, workspaceId])
+  @@index([authorId, subjectId])
+  @@index([remindAt])
 }
 
 /// Explicit join table so every membership carries a ROLE.
@@ -102,6 +145,11 @@ model Task {
   /// rough effort in hours. Without this every task looks the same size,
   /// which makes any forecast meaningless.
   estimateHours Float?
+  /// effort actually spent, entered by whoever did the work. Compared against
+  /// estimateHours this is the only honest measure of how well the team plans;
+  /// elapsed time (startedAt -> completedAt) is calendar time, not effort, and
+  /// counts weekends and blocked days as if they were work.
+  actualHours   Float?
   dueDate     DateTime?
   startedAt   DateTime? // first time it entered an in-progress status
   completedAt DateTime? // set when it enters a status flagged isDone
@@ -126,6 +174,7 @@ model Task {
   comments      Comment[]
   messages      Message[]
   notifications Notification[]
+  notes         PrivateNote[]
 
   /// Postgres full-text index. This is a GENERATED ALWAYS ... STORED column
   /// (see the fulltext_search migration) so it can never drift from the row -

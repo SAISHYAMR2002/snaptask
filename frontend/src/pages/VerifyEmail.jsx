@@ -43,7 +43,7 @@ export default function VerifyEmail() {
 
       {state === 'done' && (
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="grid size-12 place-items-center rounded-2xl bg-green-100 text-green-600">
+          <span className="grid size-12 place-items-center rounded-2xl bg-success-soft text-success">
             <IconCheck size={24} />
           </span>
           <h1 className="font-display text-xl font-extrabold">Email confirmed</h1>
@@ -56,7 +56,7 @@ export default function VerifyEmail() {
 
       {state === 'error' && (
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="grid size-12 place-items-center rounded-2xl bg-red-100 text-red-600">
+          <span className="grid size-12 place-items-center rounded-2xl bg-danger-soft text-danger">
             <IconAlert size={24} />
           </span>
           <h1 className="font-display text-xl font-extrabold">Link didn't work</h1>

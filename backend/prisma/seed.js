@@ -153,24 +153,27 @@ async function main() {
 
   // completed work spread over three weeks so charts, cycle time and the
   // longer date ranges all have something real to show
+  // The 6th column is hours ACTUALLY logged. Deliberately mixed so the
+  // planning-accuracy panel has a real story on a fresh seed: Olivia lands
+  // close, Adam runs consistently over, Mia usually finishes early.
   const finished = [
-    ['Model the database schema in Prisma', 'high', olivia.id, 18, 10, ['Feature']],
-    ['Set up Docker Compose for Postgres + Redis', 'low', olivia.id, 16, 3, ['Chore']],
-    ['Health-check endpoint + CORS setup', 'low', mia.id, 14, 2, ['Chore']],
-    ['Pick a colour palette', 'low', adam.id, 12, 4, ['Design']],
-    ['JWT auth middleware', 'high', olivia.id, 9, 8, ['Feature']],
-    ['Workspace membership guards', 'high', adam.id, 8, 6, ['Feature']],
-    ['Task board columns', 'medium', mia.id, 6, 10, ['Feature']],
-    ['Task detail slide-over', 'medium', adam.id, 5, 7, ['Design']],
-    ['Notification inbox', 'medium', olivia.id, 3, 9, ['Feature']],
-    ['Chat channels', 'medium', mia.id, 2, 14, ['Feature']],
-    ['Email templates', 'low', adam.id, 1, 3, ['Chore']],
-    ['Fix avatar rendering on Safari', 'low', mia.id, 1, 2, ['Bug']],
+    ['Model the database schema in Prisma', 'high', olivia.id, 18, 10, 11, ['Feature']],
+    ['Set up Docker Compose for Postgres + Redis', 'low', olivia.id, 16, 3, 3, ['Chore']],
+    ['Health-check endpoint + CORS setup', 'low', mia.id, 14, 2, 1.5, ['Chore']],
+    ['Pick a colour palette', 'low', adam.id, 12, 4, 7, ['Design']],
+    ['JWT auth middleware', 'high', olivia.id, 9, 8, 9, ['Feature']],
+    ['Workspace membership guards', 'high', adam.id, 8, 6, 10, ['Feature']],
+    ['Task board columns', 'medium', mia.id, 6, 10, 7, ['Feature']],
+    ['Task detail slide-over', 'medium', adam.id, 5, 7, 13, ['Design']],
+    ['Notification inbox', 'medium', olivia.id, 3, 9, 8.5, ['Feature']],
+    ['Chat channels', 'medium', mia.id, 2, 14, 10, ['Feature']],
+    ['Email templates', 'low', adam.id, 1, 3, 5, ['Chore']],
+    ['Fix avatar rendering on Safari', 'low', mia.id, 1, 2, 2, ['Bug']],
   ]
-  for (const [title, priority, assignedToId, doneDaysAgo, estimateHours, labels] of finished) {
+  for (const [title, priority, assignedToId, doneDaysAgo, estimateHours, actualHours, labels] of finished) {
     await task(
       {
-        title, priority, status: 'done', assignedToId, estimateHours,
+        title, priority, status: 'done', assignedToId, estimateHours, actualHours,
         createdAt: ago(doneDaysAgo + 4),
         startedAt: ago(doneDaysAgo + 2),
         completedAt: ago(doneDaysAgo),

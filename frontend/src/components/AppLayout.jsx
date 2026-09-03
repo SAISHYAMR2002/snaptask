@@ -25,6 +25,7 @@ import {
   IconMail,
   IconMenu,
   IconMoon,
+  IconNote,
   IconPlus,
   IconSearch,
   IconSettings,
@@ -197,8 +198,10 @@ export default function AppLayout() {
           </NavLink>
           <NavLink to="/inbox" className={navItem}>
             <IconBell /> Inbox
+            {/* text-badge-ink, not text-white: the dark badge is a light pink,
+                and white on it would be unreadable */}
             {unread > 0 && (
-              <span className="ml-auto grid h-[18px] min-w-[18px] place-items-center rounded-full bg-pink-500 px-1.5 text-[10.5px] font-extrabold text-white">
+              <span className="ml-auto grid h-[18px] min-w-[18px] place-items-center rounded-full bg-badge px-1.5 text-[10.5px] font-extrabold text-badge-ink">
                 {unread}
               </span>
             )}
@@ -208,7 +211,7 @@ export default function AppLayout() {
         <div className="-mr-1 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
           <SectionLabel
             action={
-              <button onClick={() => setShowNewWs(true)} className="text-faint hover:text-brand-600" title="New workspace">
+              <button onClick={() => setShowNewWs(true)} className="text-faint hover:text-brand-700" title="New workspace">
                 <IconPlus size={13} />
               </button>
             }
@@ -226,8 +229,11 @@ export default function AppLayout() {
                 <NavLink to={`/workspace/${w.id}`} className={navItem} end>
                   <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: workspaceDot(w.id) }} />
                   <span className="truncate">{w.name}</span>
+                  {/* inherits the link's colour rather than using `faint`:
+                      on an ACTIVE row the background is brand-100, where faint
+                      measured 2.0:1 */}
                   {w.myRole !== 'member' && (
-                    <span className="ml-auto text-[9px] font-extrabold tracking-wide text-faint uppercase">
+                    <span className="ml-auto text-[9px] font-extrabold tracking-wide uppercase opacity-70">
                       {w.myRole}
                     </span>
                   )}
@@ -242,7 +248,7 @@ export default function AppLayout() {
 
                     <SectionLabel
                       action={
-                        <button onClick={() => setShowNewChannel(true)} className="text-faint hover:text-brand-600" title="New channel">
+                        <button onClick={() => setShowNewChannel(true)} className="text-faint hover:text-brand-700" title="New channel">
                           <IconPlus size={12} />
                         </button>
                       }
@@ -258,7 +264,7 @@ export default function AppLayout() {
 
                     <div className="pt-2" />
                     <NavLink to={`/workspace/${w.id}/assistant`} className={subItem}>
-                      <IconSparkle size={14} className="text-brand-600" /> Assistant
+                      <IconSparkle size={14} className="text-brand-700" /> Assistant
                       <Pill tone="brand" className="ml-auto !text-[8.5px]">BETA</Pill>
                     </NavLink>
                     <NavLink to={`/workspace/${w.id}/members`} className={subItem}>
@@ -267,10 +273,19 @@ export default function AppLayout() {
                         {detail.workspace.members.length}
                       </span>
                     </NavLink>
+                    {/* Everyone can see their OWN report — the analytics page
+                        itself stays admin-only. */}
+                    <NavLink to={`/workspace/${w.id}/analytics/${user?.id}`} className={subItem}>
+                      <IconChart size={14} /> My performance
+                    </NavLink>
+                    <NavLink to={`/workspace/${w.id}/notes`} className={subItem}>
+                      <IconNote size={14} /> My notes
+                      <Pill tone="gray" className="ml-auto !text-[8.5px]">PRIVATE</Pill>
+                    </NavLink>
 
                     {isAdmin && (
                       <NavLink to={`/workspace/${w.id}/analytics`} className={subItem}>
-                        <IconChart size={14} className="text-amber-500" /> Team Analytics
+                        <IconChart size={14} className="text-warn" /> Team Analytics
                         <Pill tone="amber" className="ml-auto !text-[8.5px]">ADMIN</Pill>
                       </NavLink>
                     )}
@@ -290,12 +305,12 @@ export default function AppLayout() {
           </div>
           <button
             onClick={toggle}
-            className="text-faint hover:text-brand-600"
+            className="text-faint hover:text-brand-700"
             title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
           >
             {theme === 'dark' ? <IconSun size={15} /> : <IconMoon size={15} />}
           </button>
-          <NavLink to="/settings" className="text-faint hover:text-brand-600" title="Settings">
+          <NavLink to="/settings" className="text-faint hover:text-brand-700" title="Settings">
             <IconSettings size={15} />
           </NavLink>
           <button onClick={() => { logout(); navigate('/login') }} className="text-faint hover:text-ink" title="Log out">
@@ -379,9 +394,9 @@ function VerifyBanner() {
   }
 
   return (
-    <div className="flex items-center gap-3 border-b border-amber-200 bg-amber-50 px-7 py-2.5">
-      <IconMail size={16} className="shrink-0 text-amber-600" />
-      <span className="flex-1 text-[12.5px] font-semibold text-amber-900">
+    <div className="flex items-center gap-3 border-b border-warn-line bg-warn-soft px-7 py-2.5">
+      <IconMail size={16} className="shrink-0 text-warn" />
+      <span className="flex-1 text-[12.5px] font-semibold text-warn-ink">
         {state.status === 'sent' ? (
           <>
             Verification email sent.{' '}
@@ -401,7 +416,7 @@ function VerifyBanner() {
         <button
           onClick={resend}
           disabled={state.status === 'sending'}
-          className="shrink-0 text-[12px] font-extrabold text-amber-700 underline disabled:opacity-50"
+          className="shrink-0 text-[12px] font-extrabold text-warn-ink underline disabled:opacity-50"
         >
           {state.status === 'sending' ? 'Sending…' : 'Resend email'}
         </button>
@@ -433,7 +448,7 @@ function NewWorkspaceModal({ open, onClose, onCreated }) {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <TextField label="Workspace name" placeholder="e.g. Product Team" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         <p className="text-xs text-muted">You'll be the <b>owner</b> — you can invite people and promote them to admin from the Members page.</p>
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create'}</Button>
@@ -465,7 +480,7 @@ function NewChannelModal({ open, onClose, workspaceId, onCreated }) {
     <Modal open={open} onClose={onClose} title="New channel">
       <form onSubmit={submit} className="flex flex-col gap-4">
         <TextField label="Channel name" placeholder="engineering" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create'}</Button>

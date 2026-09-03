@@ -27,7 +27,7 @@ export default function ForgotPassword() {
     return (
       <AuthShell>
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="grid size-12 place-items-center rounded-2xl bg-brand-100 text-brand-600">
+          <span className="grid size-12 place-items-center rounded-2xl bg-brand-100 text-brand-700">
             <IconMail size={22} />
           </span>
           <h1 className="font-display text-xl font-extrabold">Check your email</h1>
@@ -35,8 +35,8 @@ export default function ForgotPassword() {
 
           {/* only present in dev, when no mail provider is configured */}
           {sent.resetUrl && (
-            <div className="mt-2 w-full rounded-xl border border-amber-200 bg-amber-50 p-3 text-left">
-              <p className="mb-1.5 text-[11px] font-extrabold tracking-wide text-amber-700">
+            <div className="mt-2 w-full rounded-xl border border-warn-line bg-warn-soft p-3 text-left">
+              <p className="mb-1.5 text-[11px] font-extrabold tracking-wide text-warn-ink">
                 DEV MODE — NO MAIL PROVIDER CONFIGURED
               </p>
               <a href={sent.resetUrl} className="text-[12px] font-bold break-all text-brand-700 underline">
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
           autoFocus
         />
-        {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy ? 'Sending…' : 'Send reset link'}
         </Button>
@@ -78,7 +78,7 @@ export default function ForgotPassword() {
 
       <p className="mt-5 text-center text-[13px] text-muted">
         Remembered it?{' '}
-        <Link to="/login" className="font-bold text-brand-600 hover:text-brand-700">Log in</Link>
+        <Link to="/login" className="font-bold text-brand-700 hover:text-brand-700">Log in</Link>
       </p>
     </AuthShell>
   )

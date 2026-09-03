@@ -53,6 +53,7 @@ export const IconTag = mk(<><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5L21 11.5 12.5 20
 export const IconList = mk(<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />, { w: 2.2 })
 export const IconHistory = mk(<><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></>)
 export const IconColumns = mk(<><rect x="3" y="4" width="5.5" height="16" rx="2" /><rect x="9.75" y="4" width="5.5" height="16" rx="2" /><rect x="16.5" y="4" width="4.5" height="16" rx="2" /></>)
+export const IconNote = mk(<><path d="M5 3h9l5 5v13H5z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></>)
 export const IconUndo = mk(<><path d="M4 8h11a5 5 0 0 1 0 10h-5" /><path d="M8 4 4 8l4 4" /></>)
 export const IconSparkle = mk(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="M12 8.5 13.4 11l2.6 1-2.6 1-1.4 2.5L10.6 13 8 12l2.6-1z" /></>, { w: 1.8 })
 
@@ -61,10 +62,10 @@ export function Pill({ tone = 'gray', children, className = '' }) {
   const tones = {
     gray: 'bg-surface-3 text-muted',
     brand: 'bg-brand-100 text-brand-700',
-    amber: 'bg-amber-100 text-amber-700',
-    green: 'bg-green-100 text-green-700',
-    red: 'bg-red-100 text-red-700',
-    blue: 'bg-blue-100 text-blue-700',
+    amber: 'bg-warn-soft text-warn-ink',
+    green: 'bg-success-soft text-success-ink',
+    red: 'bg-danger-soft text-danger-ink',
+    blue: 'bg-info-soft text-info-ink',
   }
   return (
     <span
@@ -130,7 +131,7 @@ export function Button({ variant = 'primary', className = '', ...props }) {
     primary:
       'text-white bg-linear-to-b from-brand-500 to-brand-600 shadow-[0_6px_16px_rgba(124,58,237,0.3)] hover:from-brand-600 hover:to-brand-700',
     ghost: 'bg-surface text-ink-soft border border-line hover:bg-brand-50',
-    danger: 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100',
+    danger: 'bg-danger-soft text-danger-ink border border-danger-line hover:bg-danger-soft',
   }
   return (
     <button

@@ -287,7 +287,7 @@ export default function Board() {
           </select>
         )}
         {filtering && (
-          <button onClick={clearFilters} className="text-[12px] font-bold text-brand-600 hover:text-brand-700">
+          <button onClick={clearFilters} className="text-[12px] font-bold text-brand-700 hover:text-brand-700">
             Clear
           </button>
         )}
@@ -345,7 +345,7 @@ export default function Board() {
 
                 <button
                   onClick={() => setShowNewTask(true)}
-                  className="flex shrink-0 items-center gap-1.5 px-1 py-1.5 text-[12.5px] font-bold text-faint hover:text-brand-600"
+                  className="flex shrink-0 items-center gap-1.5 px-1 py-1.5 text-[12.5px] font-bold text-faint hover:text-brand-700"
                 >
                   <IconPlus size={13} /> Add task
                 </button>

@@ -102,7 +102,7 @@ export default function Members() {
         )}
 
         {msg && (
-          <p className={`text-[13px] font-semibold ${msg.ok ? 'text-green-600' : 'text-red-600'}`}>{msg.text}</p>
+          <p className={`text-[13px] font-semibold ${msg.ok ? 'text-success' : 'text-danger'}`}>{msg.text}</p>
         )}
 
         {/* list */}
@@ -141,7 +141,7 @@ export default function Members() {
                 {isAdmin && m.role !== 'owner' && m.id !== user?.id && (
                   <button
                     onClick={() => kick(m.id, m.name)}
-                    className="rounded-lg p-2 text-faint hover:bg-red-50 hover:text-red-600"
+                    className="rounded-lg p-2 text-faint hover:bg-danger-soft hover:text-danger"
                     title="Remove from workspace"
                   >
                     <IconTrash size={15} />

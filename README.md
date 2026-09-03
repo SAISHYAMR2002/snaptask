@@ -73,9 +73,22 @@ every row first, and refuses to run against a non-local database.
 - **Team Analytics** (admins only) — throughput, on-time rate, workload balance,
   cycle time, a member leaderboard, a burndown chart and a completion forecast,
   over any date range or sprint, exportable as CSV
+- **Estimated vs actually taken** — put an estimate on a task, log the hours it
+  really took, and see whether the team plans realistically. Reported as a
+  median (one 10x outlier should not redefine a team's habits) and always
+  alongside its coverage, so a thin sample is visible rather than disguised
+- **Individual performance** — a page per person: output, deadline record and
+  cycle time each shown *next to the team median*, what is stuck in progress,
+  what took longest, how well they estimate, and a plain-English "what stands
+  out". Anyone can open their own; only admins can open someone else's
+- **Private notes** — notes about the people you work with, visible to nobody
+  but you: not the subject, not other admins, not the workspace owner. Attach a
+  date and it becomes a reminder only you receive
 - **Auth** — JWT, bcrypt, email verification, password reset, Redis-backed rate
   limiting
-- **Dark mode** and a layout that works down to a 390px phone
+- **Dark mode** and a layout that works down to a 390px phone. Every text
+  colour is measured, not eyeballed: 1,894 text elements across 11 screens and
+  both themes all clear the WCAG AA contrast threshold for their size
 
 The forecast is a transparent heuristic, not machine learning: each person's
 completion rate over the last 14 days is projected across their open tasks in
@@ -86,7 +99,7 @@ due-date order.
 ```bash
 cd backend
 npm run dev     # server must be running
-npm test        # 226 checks
+npm test        # 263 checks
 ```
 
 The suite creates five real users and walks the full permission matrix
@@ -130,6 +143,14 @@ design/          UI mockups
   versus one poll every 3 seconds per client before.
 - **Error reporting** (Sentry) is opt-in. With no DSN set, nothing initialises
   and the frontend SDK is not even in the bundle.
+- **Chart colours** are their own tokens, separate from the UI palette: a chart
+  mark has to clear 3:1 against the plot surface and sit inside a lightness
+  band so no series disappears. The steps were picked with a palette validator
+  against this app's real surfaces, in both themes.
+- **Status colours** (`danger`/`warn`/`success`/`info`) are tokens too, each a
+  set of four that flip together. Tailwind's built-in `bg-red-50` etc. are
+  static, so pairing one with a text colour that *does* invert produced a
+  1.02:1 panel in dark mode — invisible text.
 - Without `RESEND_API_KEY` set, emails are written to the server console and
   verification links are returned in the API response so the flows stay testable.
   With a key configured, links only ever appear in the email.
