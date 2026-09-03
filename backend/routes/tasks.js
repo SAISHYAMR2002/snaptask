@@ -77,6 +77,20 @@ router.get('/', async (req, res) => {
   res.json({ tasks });
 });
 
+// GET /tasks/assigned/me  — every task assigned to me, across all my workspaces
+// (powers the personal dashboard). Must be declared before "/:id".
+router.get('/assigned/me', async (req, res) => {
+  const tasks = await prisma.task.findMany({
+    where: {
+      assignedToId: req.userId,
+      workspace: { members: { some: { id: req.userId } } },
+    },
+    include: { ...TASK_INCLUDE, workspace: { select: { id: true, name: true } } },
+    orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+  });
+  res.json({ tasks });
+});
+
 // GET /tasks/:id
 router.get('/:id', async (req, res) => {
   const result = await loadTaskForUser(req.params.id, req.userId);

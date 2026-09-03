@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+/* SnapTask design tokens — "vibrant & friendly".
+   These become Tailwind utilities, e.g. bg-brand-600, text-ink, font-display. */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', sans-serif;
+
+  --color-brand-50: #f3ebff;
+  --color-brand-100: #ede4ff;
+  --color-brand-200: #ddd0fa;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+
+  --color-ink: #1e1b2e;
+  --color-ink-soft: #4a4760;
+  --color-muted: #6e6a83;
+  --color-faint: #a5a1b8;
+  --color-line: #ece7fa;
+  --color-canvas: #faf8ff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+}
