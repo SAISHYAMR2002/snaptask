@@ -7,6 +7,19 @@ const { notify, APP_URL } = require('../lib/notify')
 const router = express.Router()
 router.use(auth)
 
+const DEFAULT_STATUSES = [
+  { key: 'todo', label: 'To Do', color: '#7c3aed', position: 0, isDone: false },
+  { key: 'in-progress', label: 'In Progress', color: '#f59e0b', position: 1, isDone: false },
+  { key: 'done', label: 'Done', color: '#22c55e', position: 2, isDone: true },
+]
+
+const DEFAULT_LABELS = [
+  { name: 'Bug', color: 'red' },
+  { name: 'Feature', color: 'blue' },
+  { name: 'Design', color: 'pink' },
+  { name: 'Chore', color: 'gray' },
+]
+
 const MEMBER_SELECT = {
   id: true,
   role: true,
@@ -35,6 +48,9 @@ router.post('/', async (req, res) => {
           { name: 'random', purpose: 'Off-topic' },
         ],
       },
+      // board columns are data, not hardcoded — these are just the defaults
+      statuses: { create: DEFAULT_STATUSES },
+      labels: { create: DEFAULT_LABELS },
     },
   })
 
@@ -65,6 +81,9 @@ router.get('/:id', async (req, res) => {
     include: {
       members: { select: MEMBER_SELECT, orderBy: { joinedAt: 'asc' } },
       channels: { orderBy: { createdAt: 'asc' } },
+      statuses: { orderBy: { position: 'asc' } },
+      labels: { orderBy: { name: 'asc' } },
+      sprints: { orderBy: { startsAt: 'desc' } },
     },
   })
 
@@ -72,6 +91,125 @@ router.get('/:id', async (req, res) => {
     workspace: { ...workspace, members: workspace.members.map(flatMember) },
     myRole: check.membership.role,
   })
+})
+
+/* ------------------- board columns (custom statuses) ------------------- */
+
+// POST /workspaces/:id/statuses  { label, color?, isDone? }  — admins
+router.post('/:id/statuses', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+
+  const label = String(req.body.label || '').trim()
+  if (!label) return res.status(400).json({ error: 'label is required' })
+  const key = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  if (!key) return res.status(400).json({ error: 'That name is not usable' })
+
+  const exists = await prisma.workspaceStatus.findUnique({
+    where: { workspaceId_key: { workspaceId: req.params.id, key } },
+  })
+  if (exists) return res.status(409).json({ error: 'A column with that name already exists' })
+
+  const count = await prisma.workspaceStatus.count({ where: { workspaceId: req.params.id } })
+  if (count >= 8) return res.status(400).json({ error: 'A board can have at most 8 columns' })
+
+  const status = await prisma.workspaceStatus.create({
+    data: {
+      workspaceId: req.params.id,
+      key,
+      label,
+      color: req.body.color || '#7c3aed',
+      isDone: Boolean(req.body.isDone),
+      position: count,
+    },
+  })
+  res.status(201).json({ status })
+})
+
+router.patch('/:id/statuses/:statusId', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+
+  const data = {}
+  if (req.body.label !== undefined) data.label = String(req.body.label).trim()
+  if (req.body.color !== undefined) data.color = req.body.color
+  if (req.body.isDone !== undefined) data.isDone = Boolean(req.body.isDone)
+  if (Number.isInteger(req.body.position)) data.position = req.body.position
+
+  const status = await prisma.workspaceStatus.update({ where: { id: req.params.statusId }, data })
+  res.json({ status })
+})
+
+// DELETE — refuses while tasks still sit in that column, so nothing is orphaned
+router.delete('/:id/statuses/:statusId', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+
+  const status = await prisma.workspaceStatus.findUnique({ where: { id: req.params.statusId } })
+  if (!status) return res.status(404).json({ error: 'Column not found' })
+
+  const total = await prisma.workspaceStatus.count({ where: { workspaceId: req.params.id } })
+  if (total <= 2) return res.status(400).json({ error: 'A board needs at least 2 columns' })
+
+  const inUse = await prisma.task.count({ where: { workspaceId: req.params.id, status: status.key } })
+  if (inUse) return res.status(409).json({ error: `Move the ${inUse} task(s) out of "${status.label}" first` })
+
+  await prisma.workspaceStatus.delete({ where: { id: status.id } })
+  res.json({ ok: true })
+})
+
+/* ------------------------------- labels ------------------------------- */
+
+router.post('/:id/labels', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId)
+  if (check.error) return res.status(check.status).json({ error: check.error })
+
+  const name = String(req.body.name || '').trim()
+  if (!name) return res.status(400).json({ error: 'name is required' })
+  if (name.length > 30) return res.status(400).json({ error: 'Label names must be under 30 characters' })
+
+  const exists = await prisma.label.findUnique({
+    where: { workspaceId_name: { workspaceId: req.params.id, name } },
+  })
+  if (exists) return res.status(409).json({ error: 'That label already exists' })
+
+  const label = await prisma.label.create({
+    data: { workspaceId: req.params.id, name, color: req.body.color || 'violet' },
+  })
+  res.status(201).json({ label })
+})
+
+router.delete('/:id/labels/:labelId', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+  await prisma.label.delete({ where: { id: req.params.labelId } })
+  res.json({ ok: true })
+})
+
+/* ------------------------------- sprints ------------------------------ */
+
+router.post('/:id/sprints', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+
+  const name = String(req.body.name || '').trim()
+  if (!name) return res.status(400).json({ error: 'name is required' })
+  const startsAt = new Date(req.body.startsAt)
+  const endsAt = new Date(req.body.endsAt)
+  if (isNaN(startsAt) || isNaN(endsAt)) return res.status(400).json({ error: 'startsAt and endsAt are required' })
+  if (endsAt <= startsAt) return res.status(400).json({ error: 'The sprint must end after it starts' })
+
+  const sprint = await prisma.sprint.create({
+    data: { workspaceId: req.params.id, name, startsAt, endsAt },
+  })
+  res.status(201).json({ sprint })
+})
+
+router.delete('/:id/sprints/:sprintId', async (req, res) => {
+  const check = await requireMember(req.params.id, req.userId, 'admin')
+  if (check.error) return res.status(check.status).json({ error: check.error })
+  await prisma.sprint.delete({ where: { id: req.params.sprintId } })
+  res.json({ ok: true })
 })
 
 // POST /workspaces/:id/members  { email }   — admins and the owner

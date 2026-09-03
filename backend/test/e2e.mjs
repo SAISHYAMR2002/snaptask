@@ -297,6 +297,66 @@ ok('"assigned to me" includes the workspace name', r.data.tasks?.[0]?.workspace?
 r = await req('GET', '/tasks/activity/me', { token: member.token })
 ok('activity feed returns recent tasks', Array.isArray(r.data.tasks) && r.data.tasks.length > 0)
 
+/* ══════════════════ 6b. estimates, labels, subtasks, history, bulk ══════════════════ */
+section('6b. Estimates, labels, subtasks, history, bulk actions')
+
+r = await req('GET', `/workspaces/${wid}`, { token: owner.token })
+ok('workspace ships with default board columns', r.data.workspace.statuses.length === 3, JSON.stringify(r.data.workspace.statuses?.map((s) => s.key)))
+ok('exactly one column is flagged as done', r.data.workspace.statuses.filter((s) => s.isDone).length === 1)
+ok('workspace ships with default labels', r.data.workspace.labels.length === 4, `${r.data.workspace.labels?.length}`)
+const labelId = r.data.workspace.labels[0].id
+
+r = await req('POST', `/workspaces/${wid}/statuses`, { token: owner.token, body: { label: 'In Review', color: '#3b82f6' } })
+ok('admin adds a custom column', r.status === 201 && r.data.status.key === 'in-review', JSON.stringify(r.data.status))
+const reviewKey = r.data.status.key
+const reviewId = r.data.status.id
+ok('duplicate column rejected', (await req('POST', `/workspaces/${wid}/statuses`, { token: owner.token, body: { label: 'In Review' } })).status === 409)
+ok('members cannot add columns', (await req('POST', `/workspaces/${wid}/statuses`, { token: member.token, body: { label: 'Nope' } })).status === 403)
+
+r = await req('PATCH', `/tasks/${tDocs.id}`, { token: owner.token, body: { status: reviewKey, estimateHours: 6 } })
+ok('task can move to the custom column', r.data.task.status === reviewKey, JSON.stringify(r.data.task?.status))
+ok('estimate is stored', r.data.task.estimateHours === 6)
+ok('moving off the first column stamps startedAt', !!r.data.task.startedAt)
+ok('unknown status rejected', (await req('PATCH', `/tasks/${tDocs.id}`, { token: owner.token, body: { status: 'made-up' } })).status === 400)
+ok('column in use cannot be deleted', (await req('DELETE', `/workspaces/${wid}/statuses/${reviewId}`, { token: owner.token })).status === 409)
+
+r = await req('PATCH', `/tasks/${tDocs.id}`, { token: owner.token, body: { labelIds: [labelId] } })
+ok('label attaches to a task', r.data.task.labels.length === 1, JSON.stringify(r.data.task?.labels))
+r = await req('GET', `/tasks?workspaceId=${wid}&label=${labelId}`, { token: owner.token })
+ok('tasks can be filtered by label', r.data.tasks.length === 1 && r.data.tasks[0].id === tDocs.id)
+ok('duplicate label rejected', (await req('POST', `/workspaces/${wid}/labels`, { token: owner.token, body: { name: 'Bug' } })).status === 409)
+
+r = await req('POST', `/tasks/${tBug.id}/subtasks`, { token: owner.token, body: { title: 'Reproduce it' } })
+ok('subtask added', r.status === 201, `HTTP ${r.status}`)
+const subId = r.data.subtask.id
+await req('POST', `/tasks/${tBug.id}/subtasks`, { token: owner.token, body: { title: 'Write a test' } })
+r = await req('PATCH', `/tasks/subtasks/${subId}`, { token: owner.token, body: { done: true } })
+ok('subtask can be ticked off', r.data.subtask.done === true)
+r = await req('GET', `/tasks/${tBug.id}`, { token: owner.token })
+ok('task carries its checklist', r.data.task.subtasks.length === 2 && r.data.task._count.subtasks === 2)
+ok('empty subtask title rejected', (await req('POST', `/tasks/${tBug.id}/subtasks`, { token: owner.token, body: { title: '  ' } })).status === 400)
+ok('stranger cannot add subtasks', (await req('POST', `/tasks/${tBug.id}/subtasks`, { token: stranger.token, body: { title: 'x' } })).status === 403)
+r = await req('DELETE', `/tasks/subtasks/${subId}`, { token: owner.token })
+ok('subtask can be deleted', r.status === 200)
+
+r = await req('GET', `/tasks/${tDocs.id}/activity`, { token: owner.token })
+ok('activity feed records the changes', r.data.events.length >= 3, `${r.data.events?.length} events`)
+ok('activity entries read as sentences', r.data.events.some((e) => /moved it from|set the estimate/.test(e.text)), JSON.stringify(r.data.events?.[0]))
+ok('activity feed carries timing metrics', r.data.metrics && 'dueMoves' in r.data.metrics)
+
+const bulkA = await mkTask('Bulk one', { priority: 'low' })
+const bulkB = await mkTask('Bulk two', { priority: 'low' })
+r = await req('POST', '/tasks/bulk', { token: owner.token, body: { ids: [bulkA.id, bulkB.id], action: 'priority', value: 'high' } })
+ok('bulk update applies to every task', r.status === 200 && r.data.affected === 2, JSON.stringify(r.data))
+r = await req('GET', `/tasks?workspaceId=${wid}&priority=high`, { token: owner.token })
+ok('bulk change is visible', r.data.tasks.filter((t) => t.title.startsWith('Bulk')).length === 2)
+const undoPayload = (await req('POST', '/tasks/bulk', { token: owner.token, body: { ids: [bulkA.id, bulkB.id], action: 'delete' } })).data.undo
+ok('bulk delete removes them', (await req('GET', `/tasks/${bulkA.id}`, { token: owner.token })).status === 404)
+r = await req('POST', '/tasks/bulk/undo', { token: owner.token, body: { undo: undoPayload } })
+ok('UNDO restores deleted tasks', r.data.restored === 2, JSON.stringify(r.data))
+ok('restored task is back', (await req('GET', `/tasks/${bulkA.id}`, { token: owner.token })).status === 200)
+ok('bulk across workspaces rejected', (await req('POST', '/tasks/bulk', { token: stranger.token, body: { ids: [bulkA.id], action: 'priority', value: 'low' } })).status === 403)
+
 /* ══════════════════ 7. comments ══════════════════ */
 section('7. Comments')
 
@@ -428,12 +488,42 @@ section('10. Team analytics')
 r = await req('GET', `/analytics/${wid}`, { token: owner.token })
 ok('analytics returns kpis', r.status === 200 && typeof r.data.kpis.throughput === 'number', JSON.stringify(r.data.kpis))
 ok('analytics lists every member', r.data.members.length === 4, `${r.data.members.length}`)
-ok('each member has a status and a forecast', r.data.members.every((m) => m.status && m.forecast))
+ok('each member has a health status and a ranking', r.data.members.every((m) => m.status && typeof m.score === 'number' && m.rank))
 ok('member statuses use the reserved vocabulary', r.data.members.every((m) => ['on-track', 'at-risk', 'behind'].includes(m.status)))
+ok('members are ranked best first', r.data.members.every((m, i, a) => i === 0 || a[i - 1].score >= m.score))
 ok('overdue task is counted', r.data.kpis.overdueTasks >= 1, `${r.data.kpis.overdueTasks}`)
-ok('burndown window is adaptive (2..14 points)', r.data.burndown.length >= 2 && r.data.burndown.length <= 14, `${r.data.burndown.length}`)
-ok('brand-new workspace is flagged as building history', r.data.forecast.youngWorkspace === true, JSON.stringify(r.data.forecast))
-ok('weekly chart has 7 points', r.data.weekly.length === 7)
+ok('burndown and daily series returned', r.data.burndown.length >= 1 && r.data.daily.length >= 1)
+ok('a workspace with no completed work says so', /not enough completed work/i.test(r.data.forecast.message), r.data.forecast.message)
+
+/* ---- date ranges, sprints and CSV ---- */
+r = await req('GET', `/analytics/${wid}?preset=90d`, { token: owner.token })
+ok('preset ranges work (90d)', r.data.range.days === 90, `${r.data.range?.days}`)
+r = await req('GET', `/analytics/${wid}?from=2026-01-01&to=2026-03-31`, { token: owner.token })
+ok('explicit from/to range works', r.data.range.from === '2026-01-01' && r.data.range.to === '2026-03-31', JSON.stringify(r.data.range))
+
+r = await req('POST', `/workspaces/${wid}/sprints`, { token: owner.token, body: { name: 'Sprint 1', startsAt: day(-14), endsAt: day(0) } })
+ok('admin creates a sprint', r.status === 201, `HTTP ${r.status}`)
+const sprintId = r.data.sprint.id
+ok('sprint must end after it starts', (await req('POST', `/workspaces/${wid}/sprints`, { token: owner.token, body: { name: 'Bad', startsAt: day(0), endsAt: day(-3) } })).status === 400)
+ok('members cannot create sprints', (await req('POST', `/workspaces/${wid}/sprints`, { token: member.token, body: { name: 'X', startsAt: day(0), endsAt: day(3) } })).status === 403)
+r = await req('GET', `/analytics/${wid}?sprintId=${sprintId}`, { token: owner.token })
+ok('report can be scoped to a sprint', r.data.range.sprintId === sprintId && r.data.range.label === 'Sprint 1', JSON.stringify(r.data.range))
+
+r = await req('GET', `/analytics/${wid}/member/${member.id}`, { token: owner.token })
+ok('admin can pull one member report', r.status === 200 && r.data.member.id === member.id)
+ok('member report includes the team average to compare against', !!r.data.teamAverage)
+r = await req('GET', `/analytics/${wid}/member/${member.id}`, { token: member.token })
+ok('a member can see their OWN report without being admin', r.status === 200, `HTTP ${r.status}`)
+r = await req('GET', `/analytics/${wid}/member/${owner.id}`, { token: member.token })
+ok("a member cannot see someone else's report", r.status === 403, `HTTP ${r.status}`)
+
+for (const scope of ['members', 'summary', 'tasks']) {
+  const c = await fetch(`${BASE}/analytics/${wid}/export?scope=${scope}&preset=30d`, { headers: { Authorization: `Bearer ${owner.token}` } })
+  const body = await c.text()
+  ok(`CSV export (${scope}) downloads`, c.status === 200 && /text\/csv/.test(c.headers.get('content-type') || '') && body.includes(','), `HTTP ${c.status}`)
+  ok(`CSV export (${scope}) sets a filename`, /attachment; filename=/.test(c.headers.get('content-disposition') || ''))
+}
+ok('members cannot export', (await req('GET', `/analytics/${wid}/export?scope=members`, { token: member.token })).status === 403)
 
 /* ══════════════════ 11. settings ══════════════════ */
 section('11. Settings & email preferences')

@@ -36,6 +36,7 @@ model User {
   polls           Poll[]              @relation("PollCreatedBy")
   pollVotes       PollVote[]
   channelReads    ChannelRead[]
+  taskEvents      TaskEvent[]
 }
 
 /// Single-use tokens for "verify your email" and "reset your password".
@@ -67,6 +68,9 @@ model Workspace {
   members  WorkspaceMember[]
   tasks    Task[]
   channels Channel[]
+  labels   Label[]
+  statuses WorkspaceStatus[]
+  sprints  Sprint[]
 }
 
 /// Explicit join table so every membership carries a ROLE.
@@ -92,10 +96,15 @@ model Task {
   id          String    @id @default(cuid())
   title       String
   description String?
-  status      String    @default("todo") // todo | in-progress | done
+  /// matches a WorkspaceStatus.key for this workspace
+  status      String    @default("todo")
   priority    String    @default("medium") // low | medium | high
+  /// rough effort in hours. Without this every task looks the same size,
+  /// which makes any forecast meaningless.
+  estimateHours Float?
   dueDate     DateTime?
-  completedAt DateTime? // set when status becomes "done" — powers charts & analytics
+  startedAt   DateTime? // first time it entered an in-progress status
+  completedAt DateTime? // set when it enters a status flagged isDone
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -108,12 +117,101 @@ model Task {
   assignedToId String?
   assignedTo   User?   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
 
+  sprintId String?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  labels        Label[]     @relation("TaskLabels")
+  subtasks      Subtask[]
+  events        TaskEvent[]
   comments      Comment[]
   messages      Message[]
   notifications Notification[]
 
   @@index([workspaceId])
   @@index([assignedToId])
+  @@index([sprintId])
+  @@index([completedAt])
+}
+
+/// Append-only history. This is what turns "current state" into insight:
+/// cycle time, time-in-status, how often a deadline moved, who changed what.
+model TaskEvent {
+  id        String   @id @default(cuid())
+  /// created | status | assignee | due | priority | estimate | title | label | subtask
+  type      String
+  field     String?
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  /// who did it (null when the system did, e.g. a reminder sweep)
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@index([createdAt])
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  title     String
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String
+  color String @default("violet")
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  tasks Task[] @relation("TaskLabels")
+
+  @@unique([workspaceId, name])
+}
+
+/// Board columns are per-workspace, not hardcoded. `isDone` is what analytics
+/// uses to decide a task is finished, so teams can rename or add columns freely.
+model WorkspaceStatus {
+  id       String  @id @default(cuid())
+  key      String
+  label    String
+  color    String  @default("#7c3aed")
+  position Int     @default(0)
+  isDone   Boolean @default(false)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, key])
+}
+
+/// A time-boxed period to report against, so burndown can be "this sprint"
+/// rather than a rolling fortnight.
+model Sprint {
+  id        String   @id @default(cuid())
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([workspaceId, startsAt])
 }
 
 model Comment {

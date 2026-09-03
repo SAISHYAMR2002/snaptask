@@ -20,6 +20,7 @@ const DOMAIN = 'snaptask.test'
 const DAY = 86400000
 const ago = (d) => new Date(Date.now() - d * DAY)
 const ahead = (d) => new Date(Date.now() + d * DAY)
+const iso = (d) => new Date(d).toISOString().slice(0, 10)
 
 async function main() {
   const url = process.env.DATABASE_URL || ''
@@ -31,6 +32,8 @@ async function main() {
   }
 
   console.log('Wiping existing data…')
+  await prisma.taskEvent.deleteMany()
+  await prisma.subtask.deleteMany()
   await prisma.verificationToken.deleteMany()
   await prisma.notification.deleteMany()
   await prisma.message.deleteMany()
@@ -81,8 +84,30 @@ async function main() {
           { name: 'random', purpose: 'Off-topic' },
         ],
       },
+      statuses: {
+        create: [
+          { key: 'todo', label: 'To Do', color: '#7c3aed', position: 0 },
+          { key: 'in-progress', label: 'In Progress', color: '#f59e0b', position: 1 },
+          { key: 'review', label: 'In Review', color: '#3b82f6', position: 2 },
+          { key: 'done', label: 'Done', color: '#22c55e', position: 3, isDone: true },
+        ],
+      },
+      labels: {
+        create: [
+          { name: 'Bug', color: 'red' },
+          { name: 'Feature', color: 'blue' },
+          { name: 'Design', color: 'pink' },
+          { name: 'Chore', color: 'gray' },
+        ],
+      },
+      sprints: {
+        create: [
+          { name: 'Sprint 4 (current)', startsAt: ago(6), endsAt: ahead(8) },
+          { name: 'Sprint 3', startsAt: ago(20), endsAt: ago(7) },
+        ],
+      },
     },
-    include: { channels: true },
+    include: { channels: true, labels: true, sprints: true, statuses: true },
   })
 
   // a workspace Sam owns and the others cannot see — proves isolation
@@ -92,52 +117,91 @@ async function main() {
       ownerId: sam.id,
       members: { create: [{ userId: sam.id, role: 'owner' }] },
       channels: { create: [{ name: 'general' }] },
+      statuses: { create: [
+        { key: 'todo', label: 'To Do', color: '#7c3aed', position: 0 },
+        { key: 'in-progress', label: 'In Progress', color: '#f59e0b', position: 1 },
+        { key: 'done', label: 'Done', color: '#22c55e', position: 2, isDone: true },
+      ] },
     },
   })
 
   console.log('Creating tasks…')
-  const task = (t) =>
+  const L = Object.fromEntries(product.labels.map((l) => [l.name, l.id]))
+  const currentSprint = product.sprints.find((s) => s.name.includes('current'))
+  const task = (t, labels = []) =>
     prisma.task.create({
-      data: { workspaceId: product.id, createdById: olivia.id, ...t },
+      data: {
+        workspaceId: product.id,
+        createdById: olivia.id,
+        sprintId: currentSprint.id,
+        ...(labels.length ? { labels: { connect: labels.map((n) => ({ id: L[n] })) } } : {}),
+        ...t,
+      },
     })
 
   const open = [
-    { title: 'Fix login redirect bug on refresh', priority: 'high', status: 'in-progress', assignedToId: olivia.id, dueDate: ahead(0), createdAt: ago(4) },
-    { title: 'Write API docs for the /tasks endpoints', priority: 'medium', status: 'todo', assignedToId: olivia.id, dueDate: ahead(2), createdAt: ago(6) },
-    { title: 'Design empty states for the board', priority: 'medium', status: 'todo', assignedToId: adam.id, dueDate: ahead(3), createdAt: ago(5) },
-    { title: 'Add rate limiting to the auth routes', priority: 'high', status: 'todo', assignedToId: adam.id, dueDate: ago(1), createdAt: ago(9) },
-    { title: 'Set up analytics events for task actions', priority: 'medium', status: 'in-progress', assignedToId: mia.id, dueDate: ahead(5), createdAt: ago(7) },
-    { title: 'Audit colour contrast for accessibility', priority: 'low', status: 'todo', assignedToId: null, dueDate: ahead(9), createdAt: ago(3) },
-    { title: 'Decide on a pagination strategy', priority: 'low', status: 'todo', assignedToId: mia.id, dueDate: ago(2), createdAt: ago(11) },
+    [{ title: 'Fix login redirect bug on refresh', priority: 'high', status: 'in-progress', assignedToId: olivia.id, dueDate: ahead(0), createdAt: ago(4), startedAt: ago(2), estimateHours: 4 }, ['Bug']],
+    [{ title: 'Write API docs for the /tasks endpoints', priority: 'medium', status: 'todo', assignedToId: olivia.id, dueDate: ahead(2), createdAt: ago(6), estimateHours: 6 }, ['Chore']],
+    [{ title: 'Design empty states for the board', priority: 'medium', status: 'review', assignedToId: adam.id, dueDate: ahead(3), createdAt: ago(5), startedAt: ago(3), estimateHours: 8 }, ['Design']],
+    [{ title: 'Add rate limiting to the auth routes', priority: 'high', status: 'todo', assignedToId: adam.id, dueDate: ago(1), createdAt: ago(9), estimateHours: 5 }, ['Feature']],
+    [{ title: 'Set up analytics events for task actions', priority: 'medium', status: 'in-progress', assignedToId: mia.id, dueDate: ahead(5), createdAt: ago(7), startedAt: ago(1), estimateHours: 12 }, ['Feature']],
+    [{ title: 'Audit colour contrast for accessibility', priority: 'low', status: 'todo', assignedToId: null, dueDate: ahead(9), createdAt: ago(3), estimateHours: 3 }, ['Design']],
+    [{ title: 'Decide on a pagination strategy', priority: 'low', status: 'todo', assignedToId: mia.id, dueDate: ago(2), createdAt: ago(11), estimateHours: 2 }, ['Chore']],
   ]
-  const bug = await task(open[0])
-  for (const t of open.slice(1)) await task(t)
+  const bug = await task(open[0][0], open[0][1])
+  for (const [t, labels] of open.slice(1)) await task(t, labels)
 
-  // completed work spread over two weeks so the charts are not one lonely bar
+  // completed work spread over three weeks so charts, cycle time and the
+  // longer date ranges all have something real to show
   const finished = [
-    ['Model the database schema in Prisma', 'high', olivia.id, 12],
-    ['Set up Docker Compose for Postgres + Redis', 'low', olivia.id, 11],
-    ['Health-check endpoint + CORS setup', 'low', mia.id, 9],
-    ['Pick a colour palette', 'low', adam.id, 8],
-    ['JWT auth middleware', 'high', olivia.id, 6],
-    ['Workspace membership guards', 'high', adam.id, 5],
-    ['Task board columns', 'medium', mia.id, 4],
-    ['Task detail slide-over', 'medium', adam.id, 3],
-    ['Notification inbox', 'medium', olivia.id, 2],
-    ['Chat channels', 'medium', mia.id, 1],
-    ['Email templates', 'low', adam.id, 1],
+    ['Model the database schema in Prisma', 'high', olivia.id, 18, 10, ['Feature']],
+    ['Set up Docker Compose for Postgres + Redis', 'low', olivia.id, 16, 3, ['Chore']],
+    ['Health-check endpoint + CORS setup', 'low', mia.id, 14, 2, ['Chore']],
+    ['Pick a colour palette', 'low', adam.id, 12, 4, ['Design']],
+    ['JWT auth middleware', 'high', olivia.id, 9, 8, ['Feature']],
+    ['Workspace membership guards', 'high', adam.id, 8, 6, ['Feature']],
+    ['Task board columns', 'medium', mia.id, 6, 10, ['Feature']],
+    ['Task detail slide-over', 'medium', adam.id, 5, 7, ['Design']],
+    ['Notification inbox', 'medium', olivia.id, 3, 9, ['Feature']],
+    ['Chat channels', 'medium', mia.id, 2, 14, ['Feature']],
+    ['Email templates', 'low', adam.id, 1, 3, ['Chore']],
+    ['Fix avatar rendering on Safari', 'low', mia.id, 1, 2, ['Bug']],
   ]
-  for (const [title, priority, assignedToId, doneDaysAgo] of finished) {
-    await task({
-      title,
-      priority,
-      status: 'done',
-      assignedToId,
-      createdAt: ago(doneDaysAgo + 4),
-      completedAt: ago(doneDaysAgo),
-      dueDate: ago(doneDaysAgo - 1),
-    })
+  for (const [title, priority, assignedToId, doneDaysAgo, estimateHours, labels] of finished) {
+    await task(
+      {
+        title, priority, status: 'done', assignedToId, estimateHours,
+        createdAt: ago(doneDaysAgo + 4),
+        startedAt: ago(doneDaysAgo + 2),
+        completedAt: ago(doneDaysAgo),
+        dueDate: ago(doneDaysAgo - 1),
+        sprintId: doneDaysAgo > 7 ? product.sprints.find((s) => s.name === 'Sprint 3').id : currentSprint.id,
+      },
+      labels,
+    )
   }
+
+  console.log('Creating subtasks and history…')
+  await prisma.subtask.createMany({
+    data: [
+      { taskId: bug.id, title: 'Reproduce on a hard refresh', done: true, position: 0 },
+      { taskId: bug.id, title: 'Read the token before the auth check', done: true, position: 1 },
+      { taskId: bug.id, title: 'Add a loading state while auth resolves', done: false, position: 2 },
+      { taskId: bug.id, title: 'Add a regression test', done: false, position: 3 },
+    ],
+  })
+
+  // a believable history so the activity feed and cycle-time metrics work
+  await prisma.taskEvent.createMany({
+    data: [
+      { taskId: bug.id, actorId: olivia.id, type: 'created', createdAt: ago(4) },
+      { taskId: bug.id, actorId: olivia.id, type: 'estimate', newValue: '4', createdAt: ago(4) },
+      { taskId: bug.id, actorId: adam.id, type: 'assignee', oldValue: 'nobody', newValue: 'Olivia Owner', createdAt: ago(3) },
+      { taskId: bug.id, actorId: olivia.id, type: 'status', oldValue: 'todo', newValue: 'in-progress', createdAt: ago(2) },
+      { taskId: bug.id, actorId: olivia.id, type: 'due', oldValue: iso(ago(1)), newValue: iso(ahead(0)), createdAt: ago(1) },
+      { taskId: bug.id, actorId: mia.id, type: 'priority', oldValue: 'medium', newValue: 'high', createdAt: ago(1) },
+    ],
+  })
 
   console.log('Creating comments…')
   await prisma.comment.createMany({
