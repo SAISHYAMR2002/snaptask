@@ -1,0 +1,15 @@
+# Normalise line endings so the repo is identical on Windows and on the
+# Linux boxes it deploys to. Without this, Git prints a CRLF warning for
+# every file on every commit made from Windows.
+* text=auto eol=lf
+
+# Binary files Git must never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
