@@ -58,7 +58,11 @@ every row first, and refuses to run against a non-local database.
 - **Task board** — To Do / In Progress / Done, priorities, due dates, assignees,
   search and filters
 - **Task detail** panel with inline editing and comments
-- **Chat** — channels, `@mentions`, and tasks linkable into a message
+- **Chat** — channels, `@mention` autocomplete, emoji picker, reactions, inline
+  polls, typing indicators and read receipts; tasks linkable into a message
+- **Assistant** — ask questions about the workspace in plain English ("when will
+  Adam finish?", "who is behind?") and get answers with charts, computed from
+  real rows
 - **Notifications** — in-app inbox plus email, driven by per-user preferences
 - **Team Analytics** (admins only) — throughput, on-time rate, workload balance,
   a burndown chart and a completion forecast
@@ -74,7 +78,7 @@ due-date order.
 ```bash
 cd backend
 npm run dev     # server must be running
-npm test        # 121 checks
+npm test        # 150 checks
 ```
 
 The suite creates five real users and walks the full permission matrix

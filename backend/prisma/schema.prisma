@@ -32,6 +32,10 @@ model User {
   notifications   Notification[]
   prefs           NotificationPrefs?
   tokens          VerificationToken[]
+  reactions       Reaction[]
+  polls           Poll[]              @relation("PollCreatedBy")
+  pollVotes       PollVote[]
+  channelReads    ChannelRead[]
 }
 
 /// Single-use tokens for "verify your email" and "reset your password".
@@ -137,6 +141,7 @@ model Channel {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   messages Message[]
+  reads    ChannelRead[]
 
   @@unique([workspaceId, name])
 }
@@ -156,7 +161,84 @@ model Message {
   taskId String?
   task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
+  reactions Reaction[]
+  poll      Poll?
+
   @@index([channelId, createdAt])
+}
+
+/// One emoji from one person on one message. The unique constraint is what
+/// makes reacting idempotent — clicking the same emoji twice removes it.
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  createdAt DateTime @default(now())
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+/// A poll rides on a message, so it appears inline in the channel history.
+model Poll {
+  id          String    @id @default(cuid())
+  question    String
+  multiple    Boolean   @default(false) // allow picking more than one option
+  closesAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  messageId String  @unique
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("PollCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  options PollOption[]
+}
+
+model PollOption {
+  id       String @id @default(cuid())
+  text     String
+  position Int    @default(0)
+
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  votes PollVote[]
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  optionId String
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, userId])
+  @@index([userId])
+}
+
+/// How far through a channel each person has read — powers unread badges
+/// and the "seen by" row under the newest message.
+model ChannelRead {
+  id       String   @id @default(cuid())
+  lastReadAt DateTime @default(now())
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
 }
 
 model Notification {

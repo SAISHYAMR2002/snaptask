@@ -203,10 +203,13 @@ export default function Board() {
           )}
         </div>
       ) : (
-        <div className="flex flex-1 gap-4 overflow-x-auto bg-[#fdfcff] p-7">
+        // min-h-0 lets the columns shrink so each one scrolls on its own,
+        // instead of the whole board scrolling and taking the headers with it
+        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden bg-[#fdfcff] px-7 py-5">
           {STATUSES.map((col) => (
-            <div key={col.key} className="flex w-full min-w-[260px] flex-1 flex-col gap-2.5">
-              <div className="flex items-center gap-2 px-0.5 pb-0.5">
+            <div key={col.key} className="flex w-full min-w-[260px] min-h-0 flex-1 flex-col">
+              {/* header stays put while the cards below it scroll */}
+              <div className="flex shrink-0 items-center gap-2 px-0.5 pb-2.5">
                 <span className="size-2.5 rounded-[3px]" style={{ background: col.dot }} />
                 <span className="text-[13px] font-extrabold">{col.label}</span>
                 <span className="grid h-[18px] min-w-[18px] place-items-center rounded-md bg-brand-100 px-1 text-[11px] font-extrabold text-brand-700">
@@ -214,16 +217,18 @@ export default function Board() {
                 </span>
               </div>
 
-              {grouped[col.key].map((t) => (
-                <TaskCard key={t.id} task={t} onMove={patchTask} onOpen={openTask} />
-              ))}
+              <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto pr-1 pb-2">
+                {grouped[col.key].map((t) => (
+                  <TaskCard key={t.id} task={t} onMove={patchTask} onOpen={openTask} />
+                ))}
 
-              <button
-                onClick={() => setShowNewTask(true)}
-                className="flex items-center gap-1.5 px-1 py-1.5 text-[12.5px] font-bold text-faint hover:text-brand-600"
-              >
-                <IconPlus size={13} /> Add task
-              </button>
+                <button
+                  onClick={() => setShowNewTask(true)}
+                  className="flex shrink-0 items-center gap-1.5 px-1 py-1.5 text-[12.5px] font-bold text-faint hover:text-brand-600"
+                >
+                  <IconPlus size={13} /> Add task
+                </button>
+              </div>
             </div>
           ))}
         </div>

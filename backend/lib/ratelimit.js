@@ -91,6 +91,38 @@ async function reset(name, req, extra = '') {
 
 const status = () => ({ redis: redisReady, store: redisReady ? 'redis' : 'memory' })
 
+/**
+ * Short-lived shared values, used for "X is typing…".
+ * This is exactly what Redis is good at: the value must be visible to every
+ * server process, and it must expire on its own without a cleanup job.
+ * Falls back to the in-process Map when Redis is unavailable.
+ */
+async function setEphemeral(key, value, ttlSec) {
+  if (redis && redisReady) {
+    try { await redis.set(key, value, 'EX', ttlSec); return } catch { /* fall through */ }
+  }
+  memory.set(key, { value, resetAt: Date.now() + ttlSec * 1000, count: 0 })
+}
+
+async function getEphemeral(prefix) {
+  if (redis && redisReady) {
+    try {
+      const keys = await redis.keys(`${prefix}*`)
+      if (!keys.length) return []
+      const values = await redis.mget(keys)
+      return keys.map((k, i) => ({ key: k.slice(prefix.length), value: values[i] })).filter((x) => x.value)
+    } catch { /* fall through */ }
+  }
+  const now = Date.now()
+  const out = []
+  for (const [k, v] of memory) {
+    if (k.startsWith(prefix) && v.resetAt > now && v.value) {
+      out.push({ key: k.slice(prefix.length), value: v.value })
+    }
+  }
+  return out
+}
+
 /** Read a limit from the environment so it can be tuned per deployment. */
 const envLimit = (name, fallback) => {
   const v = Number(process.env[`RL_${name}`])
@@ -110,4 +142,4 @@ async function clearAll() {
   return 0
 }
 
-module.exports = { rateLimit, reset, status, envLimit, clearAll }
+module.exports = { rateLimit, reset, status, envLimit, clearAll, setEphemeral, getEphemeral }

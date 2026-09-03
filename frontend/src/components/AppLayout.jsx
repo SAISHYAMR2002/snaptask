@@ -22,6 +22,7 @@ import {
   IconMail,
   IconPlus,
   IconSettings,
+  IconSparkle,
   IconUsers,
   Logo,
   Modal,
@@ -133,7 +134,7 @@ export default function AppLayout() {
           </NavLink>
         </nav>
 
-        <div className="-mr-1 flex flex-1 flex-col overflow-y-auto pr-1">
+        <div className="-mr-1 flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
           <SectionLabel
             action={
               <button onClick={() => setShowNewWs(true)} className="text-faint hover:text-brand-600" title="New workspace">
@@ -185,6 +186,10 @@ export default function AppLayout() {
                     ))}
 
                     <div className="pt-2" />
+                    <NavLink to={`/workspace/${w.id}/assistant`} className={subItem}>
+                      <IconSparkle size={14} className="text-brand-600" /> Assistant
+                      <Pill tone="brand" className="ml-auto !text-[8.5px]">BETA</Pill>
+                    </NavLink>
                     <NavLink to={`/workspace/${w.id}/members`} className={subItem}>
                       <IconUsers size={14} /> Members
                       <span className="ml-auto text-[11px] font-bold text-faint">
@@ -222,7 +227,7 @@ export default function AppLayout() {
       </aside>
 
       {/* ---------------- page ---------------- */}
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
         {user && !user.emailVerified && <VerifyBanner />}
         <Outlet
           context={{

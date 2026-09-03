@@ -69,9 +69,22 @@ export const getChannels = (workspaceId) =>
 export const createChannel = (workspaceId, name, purpose) =>
   api.post('/channels', { workspaceId, name, purpose }).then((r) => r.data.channel)
 export const getMessages = (channelId, after) =>
-  api.get(`/channels/${channelId}/messages`, { params: after ? { after } : {} }).then((r) => r.data.messages)
+  api.get(`/channels/${channelId}/messages`, { params: after ? { after } : {} }).then(data)
 export const sendMessage = (channelId, content, taskId) =>
   api.post(`/channels/${channelId}/messages`, { content, taskId }).then((r) => r.data.message)
+export const pingTyping = (channelId) => api.post(`/channels/${channelId}/typing`).then(data)
+export const markChannelRead = (channelId) => api.post(`/channels/${channelId}/read`).then(data)
+export const toggleReaction = (messageId, emoji) =>
+  api.post(`/channels/messages/${messageId}/reactions`, { emoji }).then((r) => r.data.message)
+export const createPoll = (channelId, question, options, multiple = false) =>
+  api.post(`/channels/${channelId}/polls`, { question, options, multiple }).then((r) => r.data.message)
+export const votePoll = (pollId, optionId) =>
+  api.post(`/channels/polls/${pollId}/vote`, { optionId }).then((r) => r.data.message)
+
+// --- assistant ---
+export const askAssistant = (workspaceId, question) =>
+  api.post(`/assistant/${workspaceId}/ask`, { question }).then(data)
+export const getSuggestions = () => api.get('/assistant/suggestions').then((r) => r.data.suggestions)
 
 // --- notifications ---
 export const getNotifications = (filter = 'all') =>

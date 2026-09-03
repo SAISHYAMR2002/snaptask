@@ -328,6 +328,77 @@ r = await req('POST', '/channels', { token: member.token, body: { workspaceId: w
 ok('channel name is slugified', r.status === 201 && r.data.channel.name === 'engineering-chat', JSON.stringify(r.data.channel))
 ok('duplicate channel name rejected', (await req('POST', '/channels', { token: member.token, body: { workspaceId: wid, name: 'engineering-chat' } })).status === 409)
 
+/* ══════════════════ 8b. reactions, polls, typing, read receipts ══════════════════ */
+section('8b. Reactions, polls, typing & read receipts')
+
+const reactTarget = (await req('POST', `/channels/${general}/messages`, { token: owner.token, body: { content: 'reaction target' } })).data.message.id
+
+r = await req('POST', `/channels/messages/${reactTarget}/reactions`, { token: owner.token, body: { emoji: '👍' } })
+ok('add a reaction', r.status === 200 && r.data.message.reactions[0].count === 1, JSON.stringify(r.data.message?.reactions))
+ok('reaction is marked as mine', r.data.message.reactions[0].mine === true)
+r = await req('POST', `/channels/messages/${reactTarget}/reactions`, { token: admin.token, body: { emoji: '👍' } })
+ok('a second person increments the same emoji', r.data.message.reactions[0].count === 2)
+r = await req('POST', `/channels/messages/${reactTarget}/reactions`, { token: admin.token, body: { emoji: '👍' } })
+ok('reacting again toggles it off', r.data.removed === true && r.data.message.reactions[0].count === 1)
+ok('empty emoji rejected', (await req('POST', `/channels/messages/${reactTarget}/reactions`, { token: owner.token, body: { emoji: '' } })).status === 400)
+ok('stranger cannot react', (await req('POST', `/channels/messages/${reactTarget}/reactions`, { token: stranger.token, body: { emoji: '👍' } })).status === 403)
+
+r = await req('POST', `/channels/${general}/polls`, { token: owner.token, body: { question: 'Which day?', options: ['Thu', 'Fri', 'Mon'] } })
+ok('create a poll', r.status === 201 && r.data.message.poll.options.length === 3, `HTTP ${r.status}`)
+const pollId = r.data.message.poll.id
+const optA = r.data.message.poll.options[0].id
+const optB = r.data.message.poll.options[1].id
+ok('poll with one option rejected', (await req('POST', `/channels/${general}/polls`, { token: owner.token, body: { question: 'x', options: ['only'] } })).status === 400)
+
+r = await req('POST', `/channels/polls/${pollId}/vote`, { token: admin.token, body: { optionId: optA } })
+ok('vote registers with a percentage', r.data.message.poll.options[0].votes === 1 && r.data.message.poll.options[0].pct === 100)
+r = await req('POST', `/channels/polls/${pollId}/vote`, { token: admin.token, body: { optionId: optB } })
+ok('single-choice poll moves the vote rather than adding one', r.data.message.poll.totalVotes === 1 && r.data.message.poll.options[1].votes === 1)
+r = await req('POST', `/channels/polls/${pollId}/vote`, { token: admin.token, body: { optionId: optB } })
+ok('voting the same option again un-votes', r.data.message.poll.totalVotes === 0)
+ok('bogus option rejected', (await req('POST', `/channels/polls/${pollId}/vote`, { token: admin.token, body: { optionId: 'nope' } })).status === 400)
+ok('stranger cannot vote', (await req('POST', `/channels/polls/${pollId}/vote`, { token: stranger.token, body: { optionId: optA } })).status === 403)
+
+ok('typing ping accepted', (await req('POST', `/channels/${general}/typing`, { token: admin.token })).status === 200)
+r = await req('GET', `/channels/${general}/messages?after=${encodeURIComponent(new Date(Date.now() - 1000).toISOString())}`, { token: owner.token })
+ok('typing shows to others but not to yourself', r.data.typing.includes(admin.name) === true, JSON.stringify(r.data.typing))
+r = await req('GET', `/channels/${general}/messages?after=${encodeURIComponent(new Date(Date.now() - 1000).toISOString())}`, { token: admin.token })
+ok('you never see yourself in the typing list', !r.data.typing.includes(admin.name))
+ok('incremental fetch returns recent messages for reaction updates', Array.isArray(r.data.updated))
+
+ok('mark channel read', (await req('POST', `/channels/${general}/read`, { token: admin.token })).status === 200)
+r = await req('GET', `/channels/${general}/messages`, { token: owner.token })
+ok('read receipts come back with the channel', r.data.reads.some((x) => x.userId === admin.id), JSON.stringify(r.data.reads?.length))
+
+/* ══════════════════ 8c. assistant ══════════════════ */
+section('8c. Assistant')
+
+const ask = (q, token = owner.token) => req('POST', `/assistant/${wid}/ask`, { token, body: { question: q } })
+
+r = await ask('give me a status summary')
+ok('summary answers with stats and a chart', r.status === 200 && r.data.blocks.some((b) => b.type === 'stats') && r.data.blocks.some((b) => b.type === 'bars'), JSON.stringify(r.data.blocks?.map((b) => b.type)))
+ok('summary text mentions the workspace', /Product Team/.test(r.data.answer), r.data.answer?.slice(0, 80))
+
+r = await ask('who is behind?')
+ok('"who is behind" returns a people block', r.data.blocks.some((b) => b.type === 'people'))
+
+r = await ask("what's overdue")
+ok('"overdue" returns a task list', r.data.answer.includes('overdue') || r.data.answer.includes('past their due'), r.data.answer?.slice(0, 60))
+
+r = await ask(`what is ${member.name} working on`)
+ok('question about a person names them', r.data.answer.startsWith(member.name), r.data.answer?.slice(0, 60))
+
+r = await ask(`when will ${member.name} finish`)
+ok('ETA question returns a projected finish', /open task|nothing open/i.test(r.data.answer), r.data.answer?.slice(0, 80))
+
+r = await ask('how is the workload balanced')
+ok('workload question returns bars', r.data.blocks.some((b) => b.type === 'bars'))
+
+ok('empty question rejected', (await ask('')).status === 400)
+ok('stranger cannot query this workspace', (await ask('summary', stranger.token)).status === 404)
+r = await req('GET', '/assistant/suggestions', { token: owner.token })
+ok('suggestions endpoint returns starters', Array.isArray(r.data.suggestions) && r.data.suggestions.length > 0)
+
 /* ══════════════════ 9. notifications ══════════════════ */
 section('9. Notifications')
 

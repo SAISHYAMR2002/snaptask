@@ -32,6 +32,7 @@ app.use('/channels', require('./routes/channels'));
 app.use('/notifications', require('./routes/notifications'));
 app.use('/analytics', require('./routes/analytics'));
 app.use('/settings', require('./routes/settings'));
+app.use('/assistant', require('./routes/assistant'));
 
 // Unknown route -> JSON 404 rather than Express's HTML page
 app.use((req, res) => {

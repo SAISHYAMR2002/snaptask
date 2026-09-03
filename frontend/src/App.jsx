@@ -9,6 +9,7 @@ import Board from './pages/Board'
 import Chat from './pages/Chat'
 import Members from './pages/Members'
 import Analytics from './pages/Analytics'
+import Assistant from './pages/Assistant'
 import Inbox from './pages/Inbox'
 import Settings from './pages/Settings'
 import VerifyEmail from './pages/VerifyEmail'
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="/workspace/:id/chat/:channelId" element={<Chat />} />
               <Route path="/workspace/:id/members" element={<Members />} />
               <Route path="/workspace/:id/analytics" element={<Analytics />} />
+              <Route path="/workspace/:id/assistant" element={<Assistant />} />
             </Route>
           </Route>
 

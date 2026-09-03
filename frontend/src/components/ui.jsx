@@ -43,6 +43,7 @@ export const IconMessage = mk(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2
 export const IconAt = mk(<><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></>)
 export const IconArrowLeft = mk(<path d="M19 12H5M11 18l-6-6 6-6" />)
 export const IconSearch = mk(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>)
+export const IconSparkle = mk(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="M12 8.5 13.4 11l2.6 1-2.6 1-1.4 2.5L10.6 13 8 12l2.6-1z" /></>, { w: 1.8 })
 
 /** Small coloured pill used for roles and member health. */
 export function Pill({ tone = 'gray', children, className = '' }) {

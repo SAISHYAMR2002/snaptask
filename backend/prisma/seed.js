@@ -161,6 +161,51 @@ async function main() {
     ],
   })
 
+  console.log('Creating reactions and a poll…')
+  const posted = await prisma.message.findMany({ where: { channelId: general.id }, orderBy: { createdAt: 'asc' } })
+  await prisma.reaction.createMany({
+    data: [
+      { messageId: posted[0].id, userId: olivia.id, emoji: '👍' },
+      { messageId: posted[0].id, userId: adam.id, emoji: '👍' },
+      { messageId: posted[1].id, userId: olivia.id, emoji: '👀' },
+      { messageId: posted[2].id, userId: mia.id, emoji: '🚀' },
+      { messageId: posted[2].id, userId: adam.id, emoji: '🚀' },
+    ],
+  })
+
+  const pollMessage = await prisma.message.create({
+    data: {
+      channelId: general.id,
+      userId: olivia.id,
+      content: 'Which day works for the demo?',
+      createdAt: ago(0.05),
+      poll: {
+        create: {
+          question: 'Which day works for the demo?',
+          createdById: olivia.id,
+          options: { create: [{ text: 'Thursday', position: 0 }, { text: 'Friday', position: 1 }, { text: 'Monday', position: 2 }] },
+        },
+      },
+    },
+    include: { poll: { include: { options: true } } },
+  })
+  const opts = pollMessage.poll.options.sort((a, b) => a.position - b.position)
+  await prisma.pollVote.createMany({
+    data: [
+      { optionId: opts[1].id, userId: adam.id },
+      { optionId: opts[1].id, userId: mia.id },
+      { optionId: opts[0].id, userId: olivia.id },
+    ],
+  })
+
+  // everyone has read #general except Mia, so there is an unread state to see
+  await prisma.channelRead.createMany({
+    data: [
+      { channelId: general.id, userId: olivia.id, lastReadAt: new Date() },
+      { channelId: general.id, userId: adam.id, lastReadAt: new Date() },
+    ],
+  })
+
   console.log('Creating notifications…')
   await prisma.notification.createMany({
     data: [
