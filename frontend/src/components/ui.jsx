@@ -176,6 +176,35 @@ export function AuthShell({ children }) {
   )
 }
 
+/**
+ * Fixed toast used to surface failures. Without this, a rejected request just
+ * left the UI silently stale and people assumed the app had frozen.
+ */
+export function Toast({ toast, onClose }) {
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(onClose, toast.tone === 'error' ? 6000 : 3000)
+    return () => clearTimeout(t)
+  }, [toast, onClose])
+
+  if (!toast) return null
+  const error = toast.tone === 'error'
+  return (
+    <div
+      role="status"
+      className={`fixed bottom-5 left-1/2 z-[60] flex max-w-lg -translate-x-1/2 items-center gap-2.5 rounded-xl px-4 py-3 shadow-[0_12px_32px_rgba(30,27,46,0.22)] ${
+        error ? 'bg-red-600 text-white' : 'bg-ink text-white'
+      }`}
+    >
+      {error && <IconAlert size={16} />}
+      <span className="text-[13px] font-semibold">{toast.message}</span>
+      <button onClick={onClose} className="ml-1 opacity-70 hover:opacity-100">
+        <IconX size={14} />
+      </button>
+    </div>
+  )
+}
+
 export function Modal({ open, onClose, title, children }) {
   useEffect(() => {
     if (!open) return

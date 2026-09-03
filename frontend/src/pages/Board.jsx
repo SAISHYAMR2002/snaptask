@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
 import { createTask, deleteTask, getTasks, updateTask } from '../lib/api'
 import { PRIORITIES, STATUSES } from '../lib/helpers'
@@ -14,7 +14,8 @@ import NewTaskModal from '../components/NewTaskModal'
 export default function Board() {
   const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { workspace, refreshUnread } = useOutletContext()
+  const { workspace, workspaceError, reloadWorkspace, refreshUnread, showToast, showError } =
+    useOutletContext()
 
   const [tasks, setTasks] = useState(null)
   const [error, setError] = useState('')
@@ -37,11 +38,18 @@ export default function Board() {
     [tasks, selectedId],
   )
 
+  // Sequence guard: switching workspaces or typing fast fires overlapping
+  // requests, and a slow earlier one must not overwrite a newer result.
+  const reqSeq = useRef(0)
   const load = useCallback(() => {
+    const seq = ++reqSeq.current
     setError('')
     getTasks(id, { q: debounced, priority, assignee })
-      .then(setTasks)
-      .catch((e) => setError(e.response?.data?.error || 'Could not load this workspace'))
+      .then((t) => { if (seq === reqSeq.current) setTasks(t) })
+      .catch((e) => {
+        if (seq !== reqSeq.current) return
+        setError(e.response?.data?.error || 'Could not load this workspace')
+      })
   }, [id, debounced, priority, assignee])
 
   useEffect(() => { setTasks(null) }, [id])
@@ -50,19 +58,42 @@ export default function Board() {
   const openTask = (taskId) => setSearchParams({ task: taskId })
   const closeTask = () => setSearchParams({})
 
+  // Every mutation below is wrapped: a rejected request used to leave the board
+  // silently stale, which felt like the app had frozen until you refreshed.
   const patchTask = async (taskId, patch) => {
-    const updated = await updateTask(taskId, patch)
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)))
-    refreshUnread?.()
+    const before = tasks
+    // optimistic update so the card moves the instant you pick a status
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)))
+    try {
+      const updated = await updateTask(taskId, patch)
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)))
+      refreshUnread?.()
+    } catch (e) {
+      setTasks(before) // roll back so the UI never lies about what was saved
+      showError?.(e, 'Could not update that task')
+    }
   }
+
   const removeTask = async (taskId) => {
-    await deleteTask(taskId)
-    setTasks((prev) => prev.filter((t) => t.id !== taskId))
-    closeTask()
+    try {
+      await deleteTask(taskId)
+      setTasks((prev) => prev.filter((t) => t.id !== taskId))
+      closeTask()
+      showToast?.('Task deleted')
+    } catch (e) {
+      showError?.(e, 'Could not delete that task')
+    }
   }
+
   const addTask = async (data) => {
-    const task = await createTask({ ...data, workspaceId: id })
-    setTasks((prev) => [task, ...prev])
+    // the modal shows its own error, so let it reject after we surface it
+    try {
+      const task = await createTask({ ...data, workspaceId: id })
+      setTasks((prev) => [task, ...prev])
+    } catch (e) {
+      showError?.(e, 'Could not create that task')
+      throw e
+    }
   }
 
   const grouped = useMemo(() => {
@@ -71,12 +102,19 @@ export default function Board() {
     return g
   }, [tasks])
 
-  if (error) {
+  // Show a real error with a way out, rather than a spinner that never resolves.
+  if (error || workspaceError) {
     return (
       <>
         <PageHeader title="Workspace" />
-        <div className="p-7">
-          <EmptyState title={error} hint="It may have been deleted, or you're not a member." />
+        <div className="grid flex-1 place-items-center p-7">
+          <EmptyState
+            title={error || workspaceError}
+            hint="It may have been deleted, or you may no longer be a member."
+            action={
+              <Button onClick={() => { reloadWorkspace?.(); load() }}>Try again</Button>
+            }
+          />
         </div>
       </>
     )

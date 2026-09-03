@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useMatch, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -28,6 +28,7 @@ import {
   Pill,
   Spinner,
   TextField,
+  Toast,
 } from './ui'
 
 const navItem = ({ isActive }) =>
@@ -51,24 +52,51 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  // which workspace (if any) the current URL is inside
-  const wsMatch = useMatch('/workspace/:id/*') || useMatch('/workspace/:id')
-  const activeId = wsMatch?.params?.id || null
+  // Which workspace (if any) the current URL is inside.
+  // Both useMatch calls MUST run on every render — `a() || b()` would
+  // short-circuit the second hook and change the hook count between renders,
+  // which crashes the component ("Should have a queue") and freezes the page.
+  const nestedMatch = useMatch('/workspace/:id/*')
+  const exactMatch = useMatch('/workspace/:id')
+  const activeId = nestedMatch?.params?.id || exactMatch?.params?.id || null
 
   const [workspaces, setWorkspaces] = useState(null)
   const [detail, setDetail] = useState(null) // { workspace, myRole } for activeId
+  const [detailError, setDetailError] = useState('')
   const [unread, setUnread] = useState(0)
   const [showNewWs, setShowNewWs] = useState(false)
   const [showNewChannel, setShowNewChannel] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  const showToast = useCallback((message, tone = 'info') => setToast({ message, tone }), [])
+  const showError = useCallback(
+    (err, fallback = 'Something went wrong') =>
+      setToast({ message: err?.response?.data?.error || err?.message || fallback, tone: 'error' }),
+    [],
+  )
 
   const loadWorkspaces = useCallback(
     () => getWorkspaces().then(setWorkspaces).catch(() => setWorkspaces([])),
     [],
   )
+
+  // Guards against a slow response for a workspace you have already navigated
+  // away from landing late and overwriting the current one.
+  const detailReq = useRef(0)
   const loadDetail = useCallback(() => {
-    if (!activeId) return setDetail(null)
-    return getWorkspace(activeId).then(setDetail).catch(() => setDetail(null))
+    if (!activeId) { setDetail(null); setDetailError(''); return }
+    const seq = ++detailReq.current
+    setDetailError('')
+    return getWorkspace(activeId)
+      .then((d) => { if (seq === detailReq.current) setDetail(d) })
+      .catch((e) => {
+        if (seq !== detailReq.current) return
+        setDetail(null)
+        // an error state beats an spinner that never resolves
+        setDetailError(e.response?.data?.error || 'Could not load this workspace')
+      })
   }, [activeId])
+
   const refreshUnread = useCallback(() => getUnreadCount().then(setUnread).catch(() => {}), [])
 
   useEffect(() => { loadWorkspaces() }, [loadWorkspaces])
@@ -203,9 +231,12 @@ export default function AppLayout() {
             workspace: detail?.workspace || null,
             myRole: detail?.myRole || null,
             isAdmin,
+            workspaceError: detailError,
             reloadWorkspace: loadDetail,
             refreshUnread,
             openNewWorkspace: () => setShowNewWs(true),
+            showToast,
+            showError,
           }}
         />
       </main>
@@ -230,6 +261,8 @@ export default function AppLayout() {
           navigate(`/workspace/${activeId}/chat/${ch.id}`)
         }}
       />
+
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   )
 }

@@ -53,7 +53,8 @@ export default function TaskCard({ task, onMove, onOpen }) {
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
             e.stopPropagation()
-            onMove(task.id, e.target.value)
+            // must be a patch OBJECT — the API expects { status }, not a bare string
+            onMove(task.id, { status: e.target.value })
           }}
           className="cursor-pointer rounded-md bg-[#f4f1fc] px-2 py-1 text-[11px] font-bold text-ink-soft outline-none"
         >

@@ -20,6 +20,7 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
   const [comments, setComments] = useState(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
+  const [commentError, setCommentError] = useState('')
 
   useEffect(() => {
     setTitle(task.title)
@@ -42,10 +43,14 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
     const text = draft.trim()
     if (!text || sending) return
     setSending(true)
+    setCommentError('')
     try {
       const c = await addComment(task.id, text)
       setComments((prev) => [...(prev || []), c])
       setDraft('')
+    } catch (err) {
+      // keep the draft so nothing typed is lost, and say what happened
+      setCommentError(err.response?.data?.error || 'Could not post that comment')
     } finally {
       setSending(false)
     }
@@ -155,6 +160,9 @@ export default function TaskDetailPanel({ task, members = [], onPatch, onDelete,
         </div>
 
         <form onSubmit={postComment} className="shrink-0 border-t border-[#f4f1fc] px-5 py-3">
+          {commentError && (
+            <p className="mb-2 text-[11.5px] font-bold text-red-600">{commentError}</p>
+          )}
           <div className="flex items-center gap-2 rounded-xl border-[1.5px] border-line px-3 py-2 focus-within:border-brand-500">
             <input
               value={draft}

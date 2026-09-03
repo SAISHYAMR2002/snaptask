@@ -40,7 +40,7 @@ const ago = (iso) => {
 
 export default function Inbox() {
   const navigate = useNavigate()
-  const { refreshUnread } = useOutletContext()
+  const { refreshUnread, showError } = useOutletContext()
   const [filter, setFilter] = useState('all')
   const [items, setItems] = useState(null)
 
@@ -65,7 +65,12 @@ export default function Inbox() {
   }
 
   const clearAll = async () => {
-    await markAllRead()
+    try {
+      await markAllRead()
+    } catch (e) {
+      showError?.(e, 'Could not mark everything as read')
+      return
+    }
     refreshUnread?.()
     load()
   }

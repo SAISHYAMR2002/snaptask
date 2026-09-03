@@ -28,7 +28,7 @@ function MessageText({ text, members }) {
 
 export default function Chat() {
   const { channelId } = useParams()
-  const { workspace, refreshUnread } = useOutletContext()
+  const { workspace, refreshUnread, showError } = useOutletContext()
   const [messages, setMessages] = useState(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -82,7 +82,10 @@ export default function Chat() {
       setDraft('')
       setMessages((prev) => [...(prev || []), msg])
       lastAt.current = msg.createdAt
-    } catch { /* leave the draft so nothing is lost */ } finally {
+    } catch (e) {
+      // keep the draft so nothing typed is lost, but say why it didn't send
+      showError?.(e, 'Message not sent')
+    } finally {
       setSending(false)
     }
   }
