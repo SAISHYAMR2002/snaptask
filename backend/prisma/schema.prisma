@@ -127,6 +127,13 @@ model Task {
   messages      Message[]
   notifications Notification[]
 
+  /// Postgres full-text index. This is a GENERATED ALWAYS ... STORED column
+  /// (see the fulltext_search migration) so it can never drift from the row -
+  /// Postgres recomputes it on every write. Prisma has no tsvector type, hence
+  /// Unsupported: it is written by the database and read via $queryRaw only.
+  /// Title is weighted 'A' and description 'B', so a title hit ranks higher.
+  searchVector Unsupported("tsvector")?
+
   @@index([workspaceId])
   @@index([assignedToId])
   @@index([sprintId])
@@ -225,6 +232,9 @@ model Comment {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// see Task.searchVector
+  searchVector Unsupported("tsvector")?
+
   @@index([taskId])
 }
 
@@ -261,6 +271,9 @@ model Message {
 
   reactions Reaction[]
   poll      Poll?
+
+  /// see Task.searchVector
+  searchVector Unsupported("tsvector")?
 
   @@index([channelId, createdAt])
 }

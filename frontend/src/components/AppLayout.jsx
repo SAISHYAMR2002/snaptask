@@ -11,6 +11,7 @@ import {
   resendVerification,
 } from '../lib/api'
 import { workspaceDot } from '../lib/helpers'
+import CommandPalette from './CommandPalette'
 import {
   Avatar,
   Button,
@@ -24,6 +25,7 @@ import {
   IconMenu,
   IconMoon,
   IconPlus,
+  IconSearch,
   IconSettings,
   IconSparkle,
   IconSun,
@@ -73,7 +75,21 @@ export default function AppLayout() {
   const [unread, setUnread] = useState(0)
   const [showNewWs, setShowNewWs] = useState(false)
   const [showNewChannel, setShowNewChannel] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [toast, setToast] = useState(null)
+
+  // Cmd+K (⌘K on Mac, Ctrl+K elsewhere). Registered once at the layout so it
+  // works from every page. `/` is deliberately NOT a shortcut — people type it.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // `action` (optional) renders a button in the toast — that's how bulk undo works
   const showToast = useCallback(
@@ -140,6 +156,13 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex flex-col gap-0.5">
+          {/* a visible entry point — nobody discovers a keyboard shortcut on its own */}
+          <button onClick={() => setPaletteOpen(true)} className={navItem({ isActive: false })}>
+            <IconSearch /> Search
+            <kbd className="ml-auto rounded-md bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold text-faint">
+              {navigator.platform?.startsWith('Mac') ? '⌘K' : 'Ctrl K'}
+            </kbd>
+          </button>
           <NavLink to="/" end className={navItem}>
             <IconHome /> My Dashboard
           </NavLink>
@@ -297,6 +320,13 @@ export default function AppLayout() {
           loadDetail()
           navigate(`/workspace/${activeId}/chat/${ch.id}`)
         }}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        workspaces={workspaces || []}
+        onNewWorkspace={() => setShowNewWs(true)}
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />

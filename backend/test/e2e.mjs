@@ -388,6 +388,44 @@ r = await req('POST', '/channels', { token: member.token, body: { workspaceId: w
 ok('channel name is slugified', r.status === 201 && r.data.channel.name === 'engineering-chat', JSON.stringify(r.data.channel))
 ok('duplicate channel name rejected', (await req('POST', '/channels', { token: member.token, body: { workspaceId: wid, name: 'engineering-chat' } })).status === 409)
 
+/* ══════════════════ 8d. global full-text search ══════════════════ */
+section('8d. Global search (Postgres full-text)')
+
+// A task and a message whose wording exercises stemming and prefixing.
+await mkTask('Deploying the release candidate', { description: 'Ship it behind a flag' })
+await req('POST', `/channels/${general}/messages`, { token: owner.token, body: { content: 'Kicking off the deployment tonight' } })
+
+r = await req('GET', '/search?q=deploy', { token: owner.token })
+ok('search stems: "deploy" finds "Deploying"', r.data.tasks.some((t) => t.title.includes('Deploying')), JSON.stringify(r.data.tasks?.map((t) => t.title)))
+ok('search covers chat messages too', r.data.messages.some((m) => /deployment/i.test(m.snippet)), JSON.stringify(r.data.messages?.map((m) => m.snippet)))
+ok('message hits carry a highlighted snippet', r.data.messages.some((m) => m.snippet.includes('<<')), JSON.stringify(r.data.messages?.[0]))
+
+r = await req('GET', '/search?q=depl', { token: owner.token })
+ok('half-typed word still matches (prefix search)', r.data.tasks.length + r.data.messages.length > 0, JSON.stringify(r.data).slice(0, 200))
+
+r = await req('GET', '/search?q=candidate', { token: owner.token })
+ok('description text is searchable, not just titles', r.data.tasks.length >= 1, JSON.stringify(r.data.tasks?.map((t) => t.title)))
+
+// The important one: results must be scoped to the caller's workspaces.
+r = await req('GET', '/search?q=deploy', { token: stranger.token })
+ok("stranger sees none of another team's tasks", r.data.tasks.length === 0, JSON.stringify(r.data.tasks))
+ok("stranger sees none of another team's messages", r.data.messages.length === 0)
+ok("stranger sees none of another team's channels", r.data.channels.length === 0)
+
+r = await req('GET', `/search?q=deploy&workspaceId=${wid}`, { token: owner.token })
+ok('search can be scoped to one workspace', r.data.tasks.every((t) => t.workspaceId === wid))
+
+ok('search requires auth', (await req('GET', '/search?q=deploy')).status === 401)
+ok('empty query returns empty results, not an error', (await req('GET', '/search?q=', { token: owner.token })).status === 200)
+
+// to_tsquery throws on malformed operator input, so the route must never pass
+// raw user text to it.
+for (const evil of ['&', '!!!', '\'; DROP TABLE "Task"; --', 'a & | b', '((']) {
+  const res = await req('GET', `/search?q=${encodeURIComponent(evil)}`, { token: owner.token })
+  ok(`malformed query handled: ${JSON.stringify(evil).slice(0, 22)}`, res.status === 200, `HTTP ${res.status}`)
+}
+ok('the Task table survived the injection attempts', (await req('GET', `/tasks?workspaceId=${wid}`, { token: owner.token })).data.tasks.length > 0)
+
 /* ══════════════════ 8b. reactions, polls, typing, read receipts ══════════════════ */
 section('8b. Reactions, polls, typing & read receipts')
 

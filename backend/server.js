@@ -33,6 +33,7 @@ app.use('/notifications', require('./routes/notifications'));
 app.use('/analytics', require('./routes/analytics'));
 app.use('/settings', require('./routes/settings'));
 app.use('/assistant', require('./routes/assistant'));
+app.use('/search', require('./routes/search'));
 
 // Unknown route -> JSON 404 rather than Express's HTML page
 app.use((req, res) => {

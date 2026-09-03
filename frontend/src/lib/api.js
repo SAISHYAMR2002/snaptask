@@ -110,6 +110,10 @@ export const createPoll = (channelId, question, options, multiple = false) =>
 export const votePoll = (pollId, optionId) =>
   api.post(`/channels/polls/${pollId}/vote`, { optionId }).then((r) => r.data.message)
 
+// --- global search (Postgres full-text) ---
+export const globalSearch = (q, opts = {}) =>
+  api.get('/search', { params: { q, ...opts } }).then(data)
+
 // --- assistant ---
 export const askAssistant = (workspaceId, question) =>
   api.post(`/assistant/${workspaceId}/ask`, { question }).then(data)
