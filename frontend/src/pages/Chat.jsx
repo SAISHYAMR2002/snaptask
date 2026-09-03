@@ -14,12 +14,14 @@ import { Avatar, Button, EmptyState, IconPlus, Modal, Spinner, TextField } from 
 import ChatMessage from '../components/ChatMessage'
 import MessageComposer from '../components/MessageComposer'
 import { useAuth } from '../context/AuthContext'
+import * as realtime from '../lib/realtime'
 
+// Only used when the socket is not connected. See the effects below.
 const POLL_MS = 3000
 
 export default function Chat() {
   const { channelId } = useParams()
-  const { workspace, refreshUnread, showError } = useOutletContext()
+  const { workspace, refreshUnread, showError, live } = useOutletContext()
   const { user } = useAuth()
 
   const [messages, setMessages] = useState(null)
@@ -70,10 +72,83 @@ export default function Chat() {
     } catch { /* keep polling */ }
   }, [channelId, refreshUnread, mergeUpdated])
 
+  // Polling is now the FALLBACK, not the mechanism. With the socket connected
+  // this interval never runs, which is the whole point: the old behaviour was
+  // one request per person every 3 seconds whether or not anything happened.
   useEffect(() => {
+    if (live) return
     const t = setInterval(poll, POLL_MS)
     return () => clearInterval(t)
-  }, [poll])
+  }, [poll, live])
+
+  /* ------------------------- realtime handlers ------------------------- */
+
+  // Reactions and votes are resolved per viewer, and a broadcast frame is the
+  // same for everyone — so `mine` has to be recomputed from the id lists the
+  // server sends alongside.
+  const personalise = useCallback(
+    (msg) => ({
+      ...msg,
+      reactions: (msg.reactions || []).map((r) => ({ ...r, mine: r.userIds?.includes(user?.id) ?? r.mine })),
+      poll: msg.poll
+        ? {
+            ...msg.poll,
+            options: msg.poll.options.map((o) => ({ ...o, mine: o.voterIds?.includes(user?.id) ?? o.mine })),
+          }
+        : null,
+    }),
+    [user?.id],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('message:new', ({ channelId: id, message }) => {
+        if (id !== channelId) return
+        setMessages((prev) => {
+          if (!prev) return prev
+          if (prev.some((m) => m.id === message.id)) return prev // already have it
+          return [...prev, personalise(message)]
+        })
+        lastAt.current = message.createdAt
+        refreshUnread?.()
+        markChannelRead(channelId).catch(() => {})
+      }),
+    [channelId, refreshUnread, personalise],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('message:update', ({ channelId: id, message }) => {
+        if (id !== channelId) return
+        setMessages((prev) => (prev || []).map((m) => (m.id === message.id ? personalise(message) : m)))
+      }),
+    [channelId, personalise],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('typing', ({ channelId: id, name }) => {
+        if (id !== channelId) return
+        setTyping((prev) => (prev.includes(name) ? prev : [...prev, name]))
+        // The server marker expires after 6s; drop it here on the same clock
+        // rather than waiting for a poll that may never come.
+        setTimeout(() => setTyping((prev) => prev.filter((n) => n !== name)), 5000)
+      }),
+    [channelId],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('channel:read', ({ channelId: id, userId, lastReadAt }) => {
+        if (id !== channelId) return
+        setReads((prev) => {
+          const name = workspace?.members?.find((m) => m.id === userId)?.name
+          const rest = prev.filter((r) => r.userId !== userId)
+          return [...rest, { userId, name, lastReadAt }]
+        })
+      }),
+    [channelId, workspace],
+  )
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages?.length])
 

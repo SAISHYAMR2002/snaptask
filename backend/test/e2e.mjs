@@ -392,6 +392,93 @@ r = await req('POST', '/channels', { token: member.token, body: { workspaceId: w
 ok('channel name is slugified', r.status === 201 && r.data.channel.name === 'engineering-chat', JSON.stringify(r.data.channel))
 ok('duplicate channel name rejected', (await req('POST', '/channels', { token: member.token, body: { workspaceId: wid, name: 'engineering-chat' } })).status === 409)
 
+/* ══════════════════ 8e. realtime (WebSockets) ══════════════════ */
+section('8e. Realtime WebSockets')
+
+const WS_BASE = BASE.replace(/^http/, 'ws') + '/ws'
+
+/** Open a socket and collect frames; resolves with helpers or null if refused. */
+function openSocket(token) {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(`${WS_BASE}?token=${encodeURIComponent(token || '')}`)
+    const frames = []
+    const timer = setTimeout(() => resolve(null), 3000)
+    ws.onmessage = (e) => { try { frames.push(JSON.parse(e.data)) } catch { /* ignore */ } }
+    ws.onopen = () => { clearTimeout(timer); resolve({ ws, frames }) }
+    ws.onerror = () => { clearTimeout(timer); resolve(null) }
+  })
+}
+const waitFor = async (frames, type, ms = 2500) => {
+  const until = Date.now() + ms
+  while (Date.now() < until) {
+    const f = frames.find((x) => x.type === type)
+    if (f) return f
+    await new Promise((r) => setTimeout(r, 60))
+  }
+  return null
+}
+
+const sockOwner = await openSocket(owner.token)
+ok('a valid token opens a socket', !!sockOwner)
+ok('a garbage token is refused at the handshake', (await openSocket('not-a-token')) === null)
+ok('no token is refused at the handshake', (await openSocket('')) === null)
+
+if (sockOwner) {
+  // The important one: a client can ASK for any room, but only gets the ones
+  // it belongs to. This is the whole authorisation boundary for realtime.
+  const strangerWs = await openSocket(stranger.token)
+  ok('a stranger can still open a socket (they have an account)', !!strangerWs)
+
+  if (strangerWs) {
+    strangerWs.ws.send(JSON.stringify({ type: 'subscribe', workspaceIds: [wid] }))
+    const sub = await waitFor(strangerWs.frames, 'subscribed')
+    ok('a non-member asking for our room is given nothing', sub && sub.payload.rooms.length === 0, JSON.stringify(sub?.payload))
+  }
+
+  sockOwner.ws.send(JSON.stringify({ type: 'subscribe', workspaceIds: [wid] }))
+  const sub = await waitFor(sockOwner.frames, 'subscribed')
+  ok('a member is admitted to their own room', sub && sub.payload.rooms.includes(wid), JSON.stringify(sub?.payload))
+
+  // a message posted by someone else must arrive on the socket
+  sockOwner.frames.length = 0
+  await req('POST', `/channels/${general}/messages`, { token: admin.token, body: { content: 'realtime check' } })
+  const pushed = await waitFor(sockOwner.frames, 'message:new')
+  ok('a message from another user is pushed over the socket', pushed?.payload?.message?.content === 'realtime check', JSON.stringify(pushed?.payload?.message?.content))
+
+  // and the stranger must NOT have received it
+  if (strangerWs) {
+    ok('the stranger received nothing', !strangerWs.frames.some((f) => f.type === 'message:new'), JSON.stringify(strangerWs.frames.map((f) => f.type)))
+    strangerWs.ws.close()
+  }
+
+  // task events
+  sockOwner.frames.length = 0
+  const rtTask = (await req('POST', '/tasks', { token: admin.token, body: { workspaceId: wid, title: 'Realtime task' } })).data.task
+  const taskFrame = await waitFor(sockOwner.frames, 'task:new')
+  ok('task creation is pushed', taskFrame?.payload?.task?.id === rtTask.id)
+
+  sockOwner.frames.length = 0
+  await req('DELETE', `/tasks/${rtTask.id}`, { token: admin.token })
+  ok('task deletion is pushed', (await waitFor(sockOwner.frames, 'task:delete'))?.payload?.id === rtTask.id)
+
+  // application-level heartbeat — the client uses this to detect a dead link
+  sockOwner.frames.length = 0
+  sockOwner.ws.send(JSON.stringify({ type: 'ping' }))
+  ok('ping is answered with pong', !!(await waitFor(sockOwner.frames, 'pong', 1500)))
+
+  // malformed frames must not take the server down
+  sockOwner.ws.send('not json at all')
+  sockOwner.ws.send(JSON.stringify({ type: 'subscribe', workspaceIds: 'not-an-array' }))
+  sockOwner.ws.send(JSON.stringify({ nonsense: true }))
+  await new Promise((r) => setTimeout(r, 400))
+  ok('malformed frames are ignored, server still alive', (await req('GET', '/health')).status === 200)
+
+  const health = (await req('GET', '/health')).data
+  ok('/health reports realtime status', health.realtime?.enabled === true, JSON.stringify(health.realtime))
+
+  sockOwner.ws.close()
+}
+
 /* ══════════════════ 8d. global full-text search ══════════════════ */
 section('8d. Global search (Postgres full-text)')
 

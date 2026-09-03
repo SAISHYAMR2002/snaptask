@@ -1,6 +1,7 @@
 const prisma = require('./prisma')
 const { sendEmail, wrap } = require('./mailer')
 const { logger } = require('./logger')
+const { sendToUser } = require('./realtime')
 
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 
@@ -31,6 +32,12 @@ async function notify({ userId, actorId, type, title, body, taskId, workspaceId,
   const notification = await prisma.notification.create({
     data: { userId, type, title, body: body || null, taskId: taskId || null, workspaceId: workspaceId || null, channelId: channelId || null },
   })
+
+  // Push it so the inbox badge updates without waiting for the next poll.
+  // Addressed to the recipient's own sockets only — a notification is for one
+  // person, and "broadcast to the room and filter in the browser" is not
+  // filtering, since the frame still arrives on everyone's machine.
+  sendToUser(userId, 'notification', { notification })
 
   // Email is sent in the BACKGROUND, deliberately not awaited. Talking to the
   // mail provider takes a few hundred milliseconds; making the person who

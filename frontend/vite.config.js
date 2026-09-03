@@ -14,6 +14,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      // The realtime socket. `ws: true` is what makes Vite forward the HTTP
+      // upgrade handshake rather than answering it as a normal request.
+      '/ws': {
+        target: 'ws://localhost:3000',
+        ws: true,
+      },
     },
   },
 })

@@ -4,6 +4,7 @@ const auth = require('../middleware/auth')
 const { requireMember } = require('../lib/access')
 const { notify, findMentions, APP_URL } = require('../lib/notify')
 const { setEphemeral, getEphemeral } = require('../lib/ratelimit')
+const { broadcast } = require('../lib/realtime')
 
 const router = express.Router()
 router.use(auth)
@@ -24,13 +25,21 @@ const MESSAGE_INCLUDE = {
   },
 }
 
-/** Collapse raw reaction rows into { emoji, count, mine, names } for the UI. */
+/**
+ * Collapse raw reaction rows into { emoji, count, mine, names } for the UI.
+ *
+ * `mine` is resolved against one viewer, which is fine for a REST response but
+ * wrong for a broadcast — the same frame reaches everyone. So the id arrays
+ * ride along too, letting each client work out `mine` for itself. The names
+ * are already exposed, so the ids reveal nothing further.
+ */
 function shapeMessage(m, userId) {
   const byEmoji = new Map()
   for (const r of m.reactions || []) {
-    const e = byEmoji.get(r.emoji) || { emoji: r.emoji, count: 0, mine: false, names: [] }
+    const e = byEmoji.get(r.emoji) || { emoji: r.emoji, count: 0, mine: false, names: [], userIds: [] }
     e.count++
     e.names.push(r.user.name)
+    e.userIds.push(r.userId)
     if (r.userId === userId) e.mine = true
     byEmoji.set(r.emoji, e)
   }
@@ -51,6 +60,7 @@ function shapeMessage(m, userId) {
         pct: total ? Math.round((o.votes.length / total) * 100) : 0,
         mine: o.votes.some((v) => v.userId === userId),
         voters: o.votes.map((v) => v.user.name),
+        voterIds: o.votes.map((v) => v.userId),
       })),
     }
   }
@@ -156,6 +166,7 @@ router.post('/:id/typing', async (req, res) => {
   if (result.error) return res.status(result.status).json({ error: result.error })
   const me = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true } })
   await setEphemeral(`typing:${req.params.id}:${req.userId}`, me.name, 6)
+  broadcast(result.channel.workspaceId, 'typing', { channelId: req.params.id, userId: req.userId, name: me.name }, req.userId)
   res.json({ ok: true })
 })
 
@@ -168,6 +179,7 @@ router.post('/:id/read', async (req, res) => {
     create: { channelId: req.params.id, userId: req.userId },
     update: { lastReadAt: new Date() },
   })
+  broadcast(result.channel.workspaceId, 'channel:read', { channelId: req.params.id, userId: req.userId, lastReadAt: read.lastReadAt }, req.userId)
   res.json({ read })
 })
 
@@ -191,6 +203,7 @@ router.post('/messages/:messageId/reactions', async (req, res) => {
   else await prisma.reaction.create({ data: { messageId: message.id, userId: req.userId, emoji } })
 
   const fresh = await prisma.message.findUnique({ where: { id: message.id }, include: MESSAGE_INCLUDE })
+  broadcast(channel.workspaceId, 'message:update', { channelId: channel.id, message: shapeMessage(fresh, null) }, req.userId)
   res.json({ message: shapeMessage(fresh, req.userId), removed: Boolean(existing) })
 })
 
@@ -224,6 +237,7 @@ router.post('/:id/polls', async (req, res) => {
     include: MESSAGE_INCLUDE,
   })
 
+  broadcast(result.channel.workspaceId, 'message:new', { channelId: req.params.id, message: shapeMessage(message, null) }, req.userId)
   res.status(201).json({ message: shapeMessage(message, req.userId) })
 })
 
@@ -262,6 +276,7 @@ router.post('/polls/:pollId/vote', async (req, res) => {
     where: { id: poll.messageId },
     include: MESSAGE_INCLUDE,
   })
+  broadcast(channel.workspaceId, 'message:update', { channelId: channel.id, message: shapeMessage(fresh, null) }, req.userId)
   res.json({ message: shapeMessage(fresh, req.userId) })
 })
 
@@ -302,6 +317,10 @@ router.post('/:id/messages', async (req, res) => {
       link: `${APP_URL}/workspace/${channel.workspaceId}/chat/${channel.id}`,
     })
   }
+
+  // Push to everyone else in the workspace. Fire-and-forget: a slow socket
+  // must never slow down the person who sent the message.
+  broadcast(channel.workspaceId, 'message:new', { channelId: channel.id, message: shapeMessage(message, null) }, req.userId)
 
   res.status(201).json({ message: shapeMessage(message, req.userId) })
 })

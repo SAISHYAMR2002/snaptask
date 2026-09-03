@@ -86,13 +86,13 @@ due-date order.
 ```bash
 cd backend
 npm run dev     # server must be running
-npm test        # 213 checks
+npm test        # 226 checks
 ```
 
 The suite creates five real users and walks the full permission matrix
 (owner / admin / member / removed member / non-member) across every endpoint,
-plus validation, email verification, password reset, rate limiting, full-text
-search isolation and latency budgets.
+plus validation, email verification, password reset, rate limiting, realtime
+socket authorisation, full-text search isolation and latency budgets.
 
 Every push runs it in GitHub Actions against a real Postgres and a real Redis —
 not mocks. The search is Postgres-specific and the rate limiter is Redis-backed,
@@ -118,8 +118,18 @@ design/          UI mockups
 
 ## Notes
 
-- Chat updates by polling every 3 seconds rather than websockets — simpler to
-  deploy and good enough at this scale.
+- **Realtime** runs over a WebSocket at `/ws`, sharing the API's port. Chat,
+  the board, typing indicators and the inbox badge all update live. Rooms are
+  per-workspace and membership is checked on subscribe, so asking for a room
+  you are not in returns nothing.
+  The socket is an *optimisation, not a dependency*: if it cannot connect —
+  a proxy that strips upgrades, a blocked port — the app falls back to the
+  3-second polling it used before and nothing breaks. The dot beside the page
+  title is green on a socket, amber on the fallback.
+  Measured: an idle client makes **0** requests over 7 seconds when connected,
+  versus one poll every 3 seconds per client before.
+- **Error reporting** (Sentry) is opt-in. With no DSN set, nothing initialises
+  and the frontend SDK is not even in the bundle.
 - Without `RESEND_API_KEY` set, emails are written to the server console and
   verification links are returned in the API response so the flows stay testable.
   With a key configured, links only ever appear in the email.

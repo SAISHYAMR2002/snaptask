@@ -5,6 +5,7 @@ const { requireMember, requireTaskAccess } = require('../lib/access')
 const { notify, APP_URL } = require('../lib/notify')
 const { text } = require('../lib/validate')
 const { record, diffTask, describe, taskMetrics } = require('../lib/history')
+const { broadcast } = require('../lib/realtime')
 
 const router = express.Router()
 router.use(auth)
@@ -82,6 +83,7 @@ router.post('/', async (req, res) => {
   })
 
   await record(task.id, req.userId, { type: 'created' })
+  broadcast(workspaceId, 'task:new', { task }, req.userId)
 
   if (task.assignedToId) {
     await notify({
@@ -232,6 +234,7 @@ router.patch('/:id', async (req, res) => {
     })
   }
 
+  broadcast(task.workspaceId, 'task:update', { task }, req.userId)
   res.json({ task })
 })
 
@@ -292,6 +295,9 @@ router.post('/bulk', async (req, res) => {
     await record(t.id, req.userId, { type: action === 'assign' ? 'assignee' : action, oldValue: t[action === 'assign' ? 'assignedToId' : action], newValue: value })
   }
 
+  // one 'refresh' rather than N updates: a bulk change is exactly the case
+  // where a per-row broadcast storm would be worse than a single re-fetch
+  broadcast(workspaceIds[0], 'tasks:bulk', { action, count: tasks.length }, req.userId)
   res.json({ ok: true, affected: tasks.length, undo, action })
 })
 
@@ -334,6 +340,7 @@ router.delete('/:id', async (req, res) => {
   const result = await requireTaskAccess(req.params.id, req.userId)
   if (result.error) return res.status(result.status).json({ error: result.error })
   await prisma.task.delete({ where: { id: result.task.id } })
+  broadcast(result.task.workspaceId, 'task:delete', { id: result.task.id }, req.userId)
   res.json({ ok: true })
 })
 

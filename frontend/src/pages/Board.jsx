@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
 import { bulkTasks, createTask, deleteTask, getTasks, undoBulk, updateTask } from '../lib/api'
 import { PRIORITIES, STATUSES } from '../lib/helpers'
+import * as realtime from '../lib/realtime'
 import { PageHeader } from '../components/AppLayout'
 import {
   Avatar,
@@ -74,6 +75,41 @@ export default function Board() {
 
   useEffect(() => { setTasks(null); setSelected([]) }, [id])
   useEffect(load, [load])
+
+  /* --------- live updates: a teammate's change appears without a refresh --------- */
+
+  // Guard on workspaceId: one socket carries every workspace we belong to, so
+  // an event for a board we are not looking at must be ignored.
+  useEffect(
+    () =>
+      realtime.on('task:new', ({ task }) => {
+        if (task.workspaceId !== id) return
+        setTasks((prev) => (prev && !prev.some((t) => t.id === task.id) ? [task, ...prev] : prev))
+      }),
+    [id],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('task:update', ({ task }) => {
+        if (task.workspaceId !== id) return
+        setTasks((prev) => (prev ? prev.map((t) => (t.id === task.id ? task : t)) : prev))
+      }),
+    [id],
+  )
+
+  useEffect(
+    () =>
+      realtime.on('task:delete', ({ id: taskId }) => {
+        setTasks((prev) => (prev ? prev.filter((t) => t.id !== taskId) : prev))
+        setSelected((prev) => prev.filter((x) => x !== taskId))
+      }),
+    [],
+  )
+
+  // A bulk change sends one event, not one per row — re-fetch rather than
+  // trying to reconstruct which of a hundred tasks moved.
+  useEffect(() => realtime.on('tasks:bulk', () => load()), [load])
 
   const openTask = (taskId) => setSearchParams({ task: taskId })
   const closeTask = () => setSearchParams({})

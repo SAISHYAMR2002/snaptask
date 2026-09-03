@@ -11,6 +11,7 @@ import {
   resendVerification,
 } from '../lib/api'
 import { workspaceDot } from '../lib/helpers'
+import * as realtime from '../lib/realtime'
 import CommandPalette from './CommandPalette'
 import {
   Avatar,
@@ -138,12 +139,35 @@ export default function AppLayout() {
   const location = useLocation()
   useEffect(() => { setMobileOpen(false) }, [location.pathname])
 
-  // keep the inbox badge live
+  /* ----------------------------- realtime ----------------------------- */
+
+  // One socket for the whole app, opened once we have a token.
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    const token = localStorage.getItem('snaptask_token')
+    if (!token) return
+    realtime.connect(token)
+    const off = realtime.onStatus(setLive)
+    return () => { off(); realtime.disconnect() }
+  }, [])
+
+  // Subscribe to every workspace we belong to, so task and chat events arrive
+  // regardless of which page is open.
+  useEffect(() => {
+    if (workspaces) realtime.subscribe(workspaces.map((w) => w.id))
+  }, [workspaces])
+
+  useEffect(() => realtime.on('notification', () => refreshUnread()), [refreshUnread])
+
+  // The badge is pushed over the socket, so the poll only exists as a fallback
+  // for when the socket is not connected. Polling every 20s regardless would
+  // waste exactly the requests the socket was added to remove.
   useEffect(() => {
     refreshUnread()
+    if (live) return
     const t = setInterval(refreshUnread, 20000)
     return () => clearInterval(t)
-  }, [refreshUnread])
+  }, [refreshUnread, live])
 
   const isAdmin = detail?.myRole === 'admin' || detail?.myRole === 'owner'
 
@@ -302,6 +326,7 @@ export default function AppLayout() {
             showToast,
             showError,
             openMobileNav: () => setMobileOpen(true),
+            live,
           }}
         />
       </main>
@@ -451,12 +476,18 @@ function NewChannelModal({ open, onClose, workspaceId, onCreated }) {
 }
 
 export function PageHeader({ title, subtitle, badge, children }) {
-  const { openMobileNav } = useOutletContext() || {}
+  const { openMobileNav, live } = useOutletContext() || {}
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line px-4 sm:px-7">
       <div className="flex min-w-0 items-center gap-3">
         <button onClick={openMobileNav} className="-ml-1 shrink-0 text-muted hover:text-ink lg:hidden" title="Menu"><IconMenu size={20} /></button>
         <h1 className="truncate font-display text-[19px] font-extrabold tracking-tight">{title}</h1>
+        {/* Whether updates are arriving by socket or by fallback polling is
+            worth showing — otherwise "is this stale?" has no answer. */}
+        <span
+          title={live ? 'Live — updates arrive instantly' : 'Reconnecting — updates refresh every few seconds'}
+          className={`size-2 shrink-0 rounded-full ${live ? 'bg-green-500' : 'bg-amber-400'}`}
+        />
         {badge}
         {subtitle && <span className="border-l border-line pl-3 text-[12.5px] font-semibold text-faint">{subtitle}</span>}
       </div>

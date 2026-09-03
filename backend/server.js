@@ -43,7 +43,11 @@ app.use(rateLimit({ name: 'api', limit: 600, windowSec: 60 }));
 
 // Health check - used to confirm the server is up
 app.get('/health', (req, res) => {
-  res.json({ status: 'Backend is running!', rateLimit: rateLimitStatus() });
+  res.json({
+    status: 'Backend is running!',
+    rateLimit: rateLimitStatus(),
+    realtime: require('./lib/realtime').stats(),
+  });
 });
 
 // Feature routes
@@ -83,10 +87,15 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+// app.listen returns the http.Server; keeping the reference lets the WebSocket
+// server share the same port, so there is nothing extra to open or deploy.
+const server = app.listen(PORT, () => {
   logger.info(`server listening on http://localhost:${PORT}`, {
     env: process.env.NODE_ENV || 'development',
   });
   // due-date reminders and overdue nudges
   require('./lib/reminders').startReminders();
 });
+
+require('./lib/realtime').attach(server);

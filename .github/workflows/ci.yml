@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend:
-    name: Backend — 213 API checks
+    name: Backend — 226 API checks
     runs-on: ubuntu-latest
 
     # The test suite talks to a real Postgres and a real Redis rather than
