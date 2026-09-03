@@ -6,12 +6,14 @@
  * to logging the message, so every email path still runs end-to-end in dev
  * and nothing crashes. Sent mail is also recorded in the server log either way.
  */
+const { logger } = require('./logger')
+
 const FROM = process.env.MAIL_FROM || 'SnapTask <onboarding@resend.dev>'
 const KEY = process.env.RESEND_API_KEY
 
 async function sendEmail({ to, subject, html, text }) {
   if (!KEY) {
-    console.log(`[email:dev] -> ${to} | ${subject}`)
+    logger.info('email (dev, not sent)', { component: 'mailer', to, subject })
     return { delivered: false, reason: 'no RESEND_API_KEY set (logged instead)' }
   }
   try {
@@ -22,13 +24,13 @@ async function sendEmail({ to, subject, html, text }) {
     })
     if (!res.ok) {
       const body = await res.text()
-      console.error(`[email:fail] ${res.status} ${body}`)
+      logger.error('email rejected by provider', { component: 'mailer', status: res.status, body })
       return { delivered: false, reason: `resend ${res.status}` }
     }
-    console.log(`[email:sent] -> ${to} | ${subject}`)
+    logger.info('email sent', { component: 'mailer', to, subject })
     return { delivered: true }
   } catch (err) {
-    console.error('[email:error]', err.message)
+    logger.error('email failed', { component: 'mailer', err: err.message })
     return { delivered: false, reason: err.message }
   }
 }

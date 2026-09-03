@@ -1,5 +1,6 @@
 const prisma = require('./prisma')
 const { sendEmail, wrap } = require('./mailer')
+const { logger } = require('./logger')
 
 const APP_URL = process.env.APP_URL || 'http://localhost:5173'
 
@@ -52,7 +53,7 @@ async function notify({ userId, actorId, type, title, body, taskId, workspaceId,
         text: `${title}\n\n${body || ''}\n\n${link || APP_URL}`,
       })
     } catch (err) {
-      console.error('[notify] background email failed:', err.message)
+      logger.warn('background email failed', { component: 'notify', err: err.message })
     }
   })()
 

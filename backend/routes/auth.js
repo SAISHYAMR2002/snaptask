@@ -7,6 +7,7 @@ const { issueToken, consumeToken } = require('../lib/tokens')
 const { sendEmail, wrap } = require('../lib/mailer')
 const { rateLimit, reset, envLimit } = require('../lib/ratelimit')
 const { validateEmail, validatePassword, validateName, normalizeEmail } = require('../lib/validate')
+const { logger } = require('../lib/logger')
 
 const router = express.Router()
 
@@ -46,7 +47,7 @@ async function sendVerifyEmail(user) {
     subject: 'Confirm your SnapTask email',
     html: wrap('Confirm your email', `Hi ${user.name}, confirm your address to finish setting up your account. This link is good for 24 hours.`, url),
     text: `Confirm your SnapTask email: ${url}`,
-  }).catch((err) => console.error('[auth] verify email failed:', err.message))
+  }).catch((err) => logger.warn('verification email failed', { component: 'auth', err: err.message }))
 
   return url
 }
@@ -165,7 +166,7 @@ router.post(
         subject: 'Reset your SnapTask password',
         html: wrap('Reset your password', 'Click below to choose a new password. This link expires in 1 hour. If you did not ask for this, ignore this email.', url),
         text: `Reset your SnapTask password: ${url}`,
-      }).catch((err) => console.error('[auth] reset email failed:', err.message))
+      }).catch((err) => logger.warn('reset email failed', { component: 'auth', err: err.message }))
     }
 
     // Always the same answer, whether or not that account exists —

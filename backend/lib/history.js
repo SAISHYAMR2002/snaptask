@@ -1,4 +1,5 @@
 const prisma = require('./prisma')
+const { logger } = require('./logger')
 
 /**
  * Task history.
@@ -36,7 +37,7 @@ async function record(taskId, actorId, events) {
   try {
     await prisma.taskEvent.createMany({ data: rows })
   } catch (err) {
-    console.error('[history] could not record:', err.message)
+    logger.error('could not record task history', { component: 'history', err: err.message })
   }
 }
 

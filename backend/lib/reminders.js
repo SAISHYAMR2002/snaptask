@@ -1,5 +1,6 @@
 const prisma = require('./prisma')
 const { notify, APP_URL } = require('./notify')
+const { logger } = require('./logger')
 
 const HOUR = 3600000
 
@@ -79,10 +80,10 @@ function startReminders() {
     try {
       const r = await runReminderSweep()
       if (r.dueSent || r.overdueSent) {
-        console.log(`[reminders] due:${r.dueSent} overdue:${r.overdueSent}`)
+        logger.info('reminder sweep', { component: 'reminders', due: r.dueSent, overdue: r.overdueSent })
       }
     } catch (err) {
-      console.error('[reminders] sweep failed:', err.message)
+      logger.error('reminder sweep failed', { component: 'reminders', err: err.message })
     }
   }
   setTimeout(tick, 10000) // once shortly after boot

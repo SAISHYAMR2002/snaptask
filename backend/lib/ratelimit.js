@@ -1,4 +1,5 @@
 const Redis = require('ioredis')
+const { logger } = require('./logger')
 
 /**
  * Rate limiting, backed by Redis.
@@ -17,9 +18,9 @@ if (process.env.REDIS_URL) {
     enableOfflineQueue: false,
     retryStrategy: (times) => Math.min(times * 500, 5000),
   })
-  redis.on('ready', () => { redisReady = true; console.log('[ratelimit] using Redis') })
+  redis.on('ready', () => { redisReady = true; logger.info('rate limiting using Redis', { component: 'ratelimit' }) })
   redis.on('error', (err) => {
-    if (redisReady) console.error('[ratelimit] redis error:', err.message)
+    if (redisReady) logger.error('redis error', { component: 'ratelimit', err: err.message })
     redisReady = false
   })
 }

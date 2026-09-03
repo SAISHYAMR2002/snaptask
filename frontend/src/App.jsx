@@ -17,6 +17,10 @@ import VerifyEmail from './pages/VerifyEmail'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 
+function Boom() {
+  throw new Error('Deliberate crash from /__boom (dev only)')
+}
+
 function ProtectedRoute() {
   const { user, loading } = useAuth()
   if (loading)
@@ -53,6 +57,17 @@ export default function App() {
               <Route path="/workspace/:id/assistant" element={<Assistant />} />
             </Route>
           </Route>
+
+          {/* Dev only: a component that throws during render, so the error
+              boundary can actually be exercised rather than assumed. Stripped
+              from production builds — import.meta.env.DEV is a compile-time
+              constant, so this branch is dead code there and gets removed. */}
+          {import.meta.env.DEV && (
+            <Route
+              path="/__boom"
+              element={<Boom />}
+            />
+          )}
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

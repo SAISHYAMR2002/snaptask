@@ -96,11 +96,16 @@ export default function AppLayout() {
     (message, tone = 'info', action = null) => setToast({ message, tone, action }),
     [],
   )
-  const showError = useCallback(
-    (err, fallback = 'Something went wrong') =>
-      setToast({ message: err?.response?.data?.error || err?.message || fallback, tone: 'error' }),
-    [],
-  )
+  const showError = useCallback((err, fallback = 'Something went wrong') => {
+    const data = err?.response?.data
+    let message = data?.error || err?.message || fallback
+    // On a server error the message is deliberately vague, so show the request
+    // id - it is what lets someone say "it failed" and have it be findable.
+    if (err?.response?.status >= 500 && data?.requestId) {
+      message += ` (ref ${String(data.requestId).slice(0, 8)})`
+    }
+    setToast({ message, tone: 'error' })
+  }, [])
 
   const loadWorkspaces = useCallback(
     () => getWorkspaces().then(setWorkspaces).catch(() => setWorkspaces([])),
