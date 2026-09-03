@@ -49,6 +49,11 @@ export const IconMessage = mk(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2
 export const IconAt = mk(<><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></>)
 export const IconArrowLeft = mk(<path d="M19 12H5M11 18l-6-6 6-6" />)
 export const IconSearch = mk(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>)
+export const IconTag = mk(<><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5L21 11.5 12.5 20z" /><circle cx="7.5" cy="7.5" r="1.4" /></>)
+export const IconList = mk(<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />, { w: 2.2 })
+export const IconHistory = mk(<><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" /><path d="M3 4v4.5h4.5" /><path d="M12 7.5V12l3 2" /></>)
+export const IconColumns = mk(<><rect x="3" y="4" width="5.5" height="16" rx="2" /><rect x="9.75" y="4" width="5.5" height="16" rx="2" /><rect x="16.5" y="4" width="4.5" height="16" rx="2" /></>)
+export const IconUndo = mk(<><path d="M4 8h11a5 5 0 0 1 0 10h-5" /><path d="M8 4 4 8l4 4" /></>)
 export const IconSparkle = mk(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="M12 8.5 13.4 11l2.6 1-2.6 1-1.4 2.5L10.6 13 8 12l2.6-1z" /></>, { w: 1.8 })
 
 /** Small coloured pill used for roles and member health. */
@@ -190,7 +195,8 @@ export function AuthShell({ children }) {
 export function Toast({ toast, onClose }) {
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(onClose, toast.tone === 'error' ? 6000 : 3000)
+    // an undo offer needs longer than a plain confirmation to be usable
+    const t = setTimeout(onClose, toast.action ? 9000 : toast.tone === 'error' ? 6000 : 3000)
     return () => clearTimeout(t)
   }, [toast, onClose])
 
@@ -200,11 +206,23 @@ export function Toast({ toast, onClose }) {
     <div
       role="status"
       className={`fixed bottom-5 left-1/2 z-[60] flex max-w-lg -translate-x-1/2 items-center gap-2.5 rounded-xl px-4 py-3 shadow-[0_12px_32px_rgba(30,27,46,0.22)] ${
-        error ? 'bg-red-600 text-white' : 'bg-ink text-white'
+        error ? 'bg-red-600 text-white' : 'bg-inverse text-inverse-ink'
       }`}
     >
       {error && <IconAlert size={16} />}
       <span className="text-[13px] font-semibold">{toast.message}</span>
+      {/* border-current so it reads on the light bar, the dark bar and the red one */}
+      {toast.action && (
+        <button
+          onClick={() => {
+            toast.action.onClick()
+            onClose()
+          }}
+          className="ml-1 rounded-lg border border-current/40 px-2 py-1 text-[12px] font-extrabold opacity-85 hover:opacity-100"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button onClick={onClose} className="ml-1 opacity-70 hover:opacity-100">
         <IconX size={14} />
       </button>
@@ -223,7 +241,7 @@ export function Modal({ open, onClose, title, children }) {
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/45 p-4"
       onClick={onClose}
     >
       <div

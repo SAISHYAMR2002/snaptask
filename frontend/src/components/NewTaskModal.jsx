@@ -12,6 +12,7 @@ export default function NewTaskModal({ open, onClose, members = [], onCreate }) 
     priority: 'medium',
     assignedToId: '',
     dueDate: '',
+    estimateHours: '',
   })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -87,7 +88,18 @@ export default function NewTaskModal({ open, onClose, members = [], onCreate }) 
           </label>
         </div>
 
-        <TextField label="Due date" type="date" value={form.dueDate} onChange={set('dueDate')} />
+        <div className="grid grid-cols-2 gap-3">
+          <TextField label="Due date" type="date" value={form.dueDate} onChange={set('dueDate')} />
+          <TextField
+            label="Estimate (hours)"
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="e.g. 4"
+            value={form.estimateHours}
+            onChange={set('estimateHours')}
+          />
+        </div>
 
         {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
         <div className="flex justify-end gap-2">

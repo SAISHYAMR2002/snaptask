@@ -58,6 +58,35 @@ export const createTask = (payload) => api.post('/tasks', payload).then((r) => r
 export const updateTask = (id, patch) => api.patch(`/tasks/${id}`, patch).then((r) => r.data.task)
 export const deleteTask = (id) => api.delete(`/tasks/${id}`).then(data)
 
+// --- board columns, labels, sprints ---
+export const createStatus = (workspaceId, payload) =>
+  api.post(`/workspaces/${workspaceId}/statuses`, payload).then((r) => r.data.status)
+export const updateStatus = (workspaceId, statusId, patch) =>
+  api.patch(`/workspaces/${workspaceId}/statuses/${statusId}`, patch).then((r) => r.data.status)
+export const deleteStatus = (workspaceId, statusId) =>
+  api.delete(`/workspaces/${workspaceId}/statuses/${statusId}`).then(data)
+export const createLabel = (workspaceId, name, color) =>
+  api.post(`/workspaces/${workspaceId}/labels`, { name, color }).then((r) => r.data.label)
+export const deleteLabel = (workspaceId, labelId) =>
+  api.delete(`/workspaces/${workspaceId}/labels/${labelId}`).then(data)
+export const createSprint = (workspaceId, payload) =>
+  api.post(`/workspaces/${workspaceId}/sprints`, payload).then((r) => r.data.sprint)
+export const deleteSprint = (workspaceId, sprintId) =>
+  api.delete(`/workspaces/${workspaceId}/sprints/${sprintId}`).then(data)
+
+// --- subtasks & task history ---
+export const getTaskActivity = (taskId) => api.get(`/tasks/${taskId}/activity`).then(data)
+export const addSubtask = (taskId, title) =>
+  api.post(`/tasks/${taskId}/subtasks`, { title }).then((r) => r.data.subtask)
+export const updateSubtask = (subtaskId, patch) =>
+  api.patch(`/tasks/subtasks/${subtaskId}`, patch).then((r) => r.data.subtask)
+export const deleteSubtask = (subtaskId) => api.delete(`/tasks/subtasks/${subtaskId}`).then(data)
+
+// --- bulk actions ---
+export const bulkTasks = (ids, action, value) =>
+  api.post('/tasks/bulk', { ids, action, value }).then(data)
+export const undoBulk = (undo) => api.post('/tasks/bulk/undo', { undo }).then(data)
+
 // --- comments ---
 export const getComments = (taskId) => api.get(`/tasks/${taskId}/comments`).then((r) => r.data.comments)
 export const addComment = (taskId, content) =>

@@ -31,6 +31,15 @@
   --color-surface-2: #f8f6ff;
   --color-surface-3: #f1edfb;
   --color-canvas: #faf8ff;
+
+  /* Deliberately NOT the same as ink. Toasts and the bulk bar want to sit
+     against the page in both themes, so this pair flips with the theme while
+     `ink` stays the text colour. Using `bg-ink text-white` for them broke in
+     dark mode: the background went light and the white text vanished. */
+  --color-inverse: #1e1b2e;
+  --color-inverse-ink: #ffffff;
+  /* A scrim must always darken, so it never follows `ink`. */
+  --color-scrim: #1e1b2e;
 }
 
 /* Dark palette. Same token names, different values — nothing else changes. */
@@ -54,6 +63,10 @@
   --color-surface-2: #16131f;
   --color-surface-3: #262032;
   --color-canvas: #121017;
+
+  --color-inverse: #efecf9;
+  --color-inverse-ink: #1e1b2e;
+  --color-scrim: #08060d; /* darker than light mode's — the page is already dark */
 }
 
 html,

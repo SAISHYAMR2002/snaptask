@@ -16,6 +16,29 @@ export const PRIORITIES = [
 
 export const priorityMeta = (key) => PRIORITIES.find((p) => p.key === key) || PRIORITIES[1]
 
+// Labels store a colour NAME, not a hex value, so the same label reads
+// correctly in both themes — each name maps to a light and a dark treatment.
+export const LABEL_COLORS = [
+  { key: 'violet', swatch: '#7c3aed', chip: 'bg-brand-100 text-brand-700' },
+  { key: 'blue', swatch: '#2563eb', chip: 'bg-blue-100 text-blue-700' },
+  { key: 'green', swatch: '#16a34a', chip: 'bg-green-100 text-green-700' },
+  { key: 'amber', swatch: '#d97706', chip: 'bg-amber-100 text-amber-700' },
+  { key: 'red', swatch: '#dc2626', chip: 'bg-red-100 text-red-700' },
+  { key: 'gray', swatch: '#64748b', chip: 'bg-surface-3 text-muted' },
+]
+export const labelMeta = (key) => LABEL_COLORS.find((c) => c.key === key) || LABEL_COLORS[0]
+
+/** "3h" / "1.5h" / "2d 4h" — estimates and cycle times read better than raw floats. */
+export function formatHours(h) {
+  if (h == null || !Number.isFinite(Number(h))) return null
+  const n = Number(h)
+  if (n < 1) return `${Math.round(n * 60)}m`
+  if (n < 24) return `${Math.round(n * 10) / 10}h`
+  const days = Math.floor(n / 24)
+  const rest = Math.round(n % 24)
+  return rest ? `${days}d ${rest}h` : `${days}d`
+}
+
 // A stable-ish gradient for an avatar, picked from the person's id/name.
 const AVATAR_GRADIENTS = [
   'linear-gradient(160deg,#f0abfc,#c026d3)',

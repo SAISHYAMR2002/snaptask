@@ -75,7 +75,11 @@ export default function AppLayout() {
   const [showNewChannel, setShowNewChannel] = useState(false)
   const [toast, setToast] = useState(null)
 
-  const showToast = useCallback((message, tone = 'info') => setToast({ message, tone }), [])
+  // `action` (optional) renders a button in the toast — that's how bulk undo works
+  const showToast = useCallback(
+    (message, tone = 'info', action = null) => setToast({ message, tone, action }),
+    [],
+  )
   const showError = useCallback(
     (err, fallback = 'Something went wrong') =>
       setToast({ message: err?.response?.data?.error || err?.message || fallback, tone: 'error' }),
@@ -250,7 +254,7 @@ export default function AppLayout() {
 
       {/* dim the page behind the drawer on mobile */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-30 bg-scrim/50 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* ---------------- page ---------------- */}
