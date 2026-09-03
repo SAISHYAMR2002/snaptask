@@ -42,14 +42,22 @@ export default function Login() {
           value={form.email}
           onChange={set('email')}
         />
-        <TextField
-          label="Password"
-          type="password"
-          required
-          placeholder="••••••••••"
-          value={form.password}
-          onChange={set('password')}
-        />
+        <div>
+          <TextField
+            label="Password"
+            type="password"
+            required
+            placeholder="••••••••••"
+            value={form.password}
+            onChange={set('password')}
+          />
+          <Link
+            to="/forgot-password"
+            className="mt-1.5 block text-right text-xs font-bold text-brand-600 hover:text-brand-700"
+          >
+            Forgot password?
+          </Link>
+        </div>
         {err && <p className="text-xs font-semibold text-red-600">{err}</p>}
         <Button type="submit" className="h-11 w-full" disabled={busy}>
           {busy ? 'Logging in…' : 'Log in'}

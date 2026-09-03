@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
-import {
-  addMember,
-  createTask,
-  deleteTask,
-  getTasks,
-  getWorkspace,
-  updateTask,
-} from '../lib/api'
-import { STATUSES } from '../lib/helpers'
+import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
+import { createTask, deleteTask, getTasks, updateTask } from '../lib/api'
+import { PRIORITIES, STATUSES } from '../lib/helpers'
 import { PageHeader } from '../components/AppLayout'
-import { Avatar, Button, EmptyState, IconPlus, Modal, Spinner, TextField } from '../components/ui'
+import { Avatar, Button, EmptyState, IconPlus, IconSearch, Spinner } from '../components/ui'
+
+const filterCls =
+  'h-8 rounded-lg border-[1.5px] border-line bg-white px-2 text-[12.5px] font-semibold text-ink-soft outline-none focus:border-brand-500'
 import TaskCard from '../components/TaskCard'
 import TaskDetailPanel from '../components/TaskDetailPanel'
 import NewTaskModal from '../components/NewTaskModal'
@@ -18,12 +14,22 @@ import NewTaskModal from '../components/NewTaskModal'
 export default function Board() {
   const { id } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { workspace, refreshUnread } = useOutletContext()
 
-  const [workspace, setWorkspace] = useState(null)
   const [tasks, setTasks] = useState(null)
   const [error, setError] = useState('')
   const [showNewTask, setShowNewTask] = useState(false)
-  const [showInvite, setShowInvite] = useState(false)
+
+  // search + filters (the search box is debounced so we don't hit the API per keystroke)
+  const [search, setSearch] = useState('')
+  const [debounced, setDebounced] = useState('')
+  const [priority, setPriority] = useState('')
+  const [assignee, setAssignee] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), 250)
+    return () => clearTimeout(t)
+  }, [search])
+  const filtering = Boolean(debounced || priority || assignee)
 
   const selectedId = searchParams.get('task')
   const selectedTask = useMemo(
@@ -32,33 +38,28 @@ export default function Board() {
   )
 
   const load = useCallback(() => {
-    setWorkspace(null)
-    setTasks(null)
     setError('')
-    Promise.all([getWorkspace(id), getTasks(id)])
-      .then(([ws, ts]) => {
-        setWorkspace(ws)
-        setTasks(ts)
-      })
+    getTasks(id, { q: debounced, priority, assignee })
+      .then(setTasks)
       .catch((e) => setError(e.response?.data?.error || 'Could not load this workspace'))
-  }, [id])
+  }, [id, debounced, priority, assignee])
 
+  useEffect(() => { setTasks(null) }, [id])
   useEffect(load, [load])
 
-  const openTask = (taskId) => setSearchParams({ task: taskId }, { replace: false })
-  const closeTask = () => setSearchParams({}, { replace: false })
+  const openTask = (taskId) => setSearchParams({ task: taskId })
+  const closeTask = () => setSearchParams({})
 
   const patchTask = async (taskId, patch) => {
     const updated = await updateTask(taskId, patch)
     setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)))
+    refreshUnread?.()
   }
-
   const removeTask = async (taskId) => {
     await deleteTask(taskId)
     setTasks((prev) => prev.filter((t) => t.id !== taskId))
     closeTask()
   }
-
   const addTask = async (data) => {
     const task = await createTask({ ...data, workspaceId: id })
     setTasks((prev) => [task, ...prev])
@@ -82,45 +83,86 @@ export default function Board() {
   }
 
   if (!workspace || !tasks) {
-    return (
-      <>
-        <PageHeader title="Loading…" />
-        <div className="grid flex-1 place-items-center">
-          <Spinner />
-        </div>
-      </>
-    )
+    return <><PageHeader title="Loading…" /><div className="grid flex-1 place-items-center"><Spinner /></div></>
   }
 
   return (
     <>
       <PageHeader title={workspace.name}>
-        <div className="flex items-center">
-          {workspace.members.map((m, i) => (
+        <Link to={`/workspace/${id}/members`} className="flex items-center" title="Members">
+          {workspace.members.slice(0, 4).map((m, i) => (
             <span key={m.id} className={i ? '-ml-2' : ''}>
               <Avatar name={m.name} size={28} className="ring-2 ring-white" />
             </span>
           ))}
-        </div>
-        <Button variant="ghost" className="h-8 px-3 text-xs" onClick={() => setShowInvite(true)}>
-          Invite
-        </Button>
+          {workspace.members.length > 4 && (
+            <span className="-ml-2 grid size-7 place-items-center rounded-[30%] bg-brand-100 text-[10px] font-extrabold text-brand-700 ring-2 ring-white">
+              +{workspace.members.length - 4}
+            </span>
+          )}
+        </Link>
+        <Link to={`/workspace/${id}/members`}>
+          <Button variant="ghost" className="h-8 px-3 text-xs">Members</Button>
+        </Link>
         <Button className="h-9" onClick={() => setShowNewTask(true)}>
           <IconPlus size={14} /> New task
         </Button>
       </PageHeader>
 
+      {/* search + filters */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-[#f4f1fc] px-7 py-2.5">
+        <div className="flex h-8 w-64 items-center gap-2 rounded-lg border-[1.5px] border-line bg-white px-2.5 focus-within:border-brand-500">
+          <IconSearch size={14} className="shrink-0 text-faint" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tasks…"
+            className="min-w-0 flex-1 text-[13px] outline-none placeholder:text-faint"
+          />
+        </div>
+        <select value={priority} onChange={(e) => setPriority(e.target.value)} className={filterCls}>
+          <option value="">All priorities</option>
+          {PRIORITIES.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+        </select>
+        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={filterCls}>
+          <option value="">Anyone</option>
+          <option value="unassigned">Unassigned</option>
+          {workspace.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        </select>
+        {filtering && (
+          <button
+            onClick={() => { setSearch(''); setPriority(''); setAssignee('') }}
+            className="text-[12px] font-bold text-brand-600 hover:text-brand-700"
+          >
+            Clear
+          </button>
+        )}
+        {filtering && tasks && (
+          <span className="ml-auto text-[12px] font-semibold text-faint">
+            {tasks.length} match{tasks.length === 1 ? '' : 'es'}
+          </span>
+        )}
+      </div>
+
       {tasks.length === 0 ? (
         <div className="grid flex-1 place-items-center bg-[#fdfcff] p-7">
-          <EmptyState
-            title="No tasks yet"
-            hint="Create the first task for this workspace."
-            action={
-              <Button onClick={() => setShowNewTask(true)}>
-                <IconPlus size={14} /> New task
-              </Button>
-            }
-          />
+          {filtering ? (
+            <EmptyState
+              title="No tasks match those filters"
+              hint="Try a different search term, or clear the filters."
+              action={
+                <Button variant="ghost" onClick={() => { setSearch(''); setPriority(''); setAssignee('') }}>
+                  Clear filters
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="No tasks yet"
+              hint="Create the first task for this workspace, assign it to someone and give it a due date."
+              action={<Button onClick={() => setShowNewTask(true)}><IconPlus size={14} /> New task</Button>}
+            />
+          )}
         </div>
       ) : (
         <div className="flex flex-1 gap-4 overflow-x-auto bg-[#fdfcff] p-7">
@@ -156,13 +198,6 @@ export default function Board() {
         onCreate={addTask}
       />
 
-      <InviteModal
-        open={showInvite}
-        onClose={() => setShowInvite(false)}
-        workspaceId={id}
-        onDone={load}
-      />
-
       {selectedTask && (
         <TaskDetailPanel
           task={selectedTask}
@@ -173,57 +208,5 @@ export default function Board() {
         />
       )}
     </>
-  )
-}
-
-function InviteModal({ open, onClose, workspaceId, onDone }) {
-  const [email, setEmail] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    setBusy(true)
-    setMsg(null)
-    try {
-      await addMember(workspaceId, email.trim())
-      setEmail('')
-      setMsg({ ok: true, text: 'Member added.' })
-      onDone()
-    } catch (e) {
-      setMsg({ ok: false, text: e.response?.data?.error || 'Could not add member' })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Invite a member">
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <TextField
-          label="Their email"
-          type="email"
-          placeholder="teammate@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoFocus
-        />
-        <p className="text-xs text-muted">They need a SnapTask account with this email already.</p>
-        {msg && (
-          <p className={`text-xs font-semibold ${msg.ok ? 'text-green-600' : 'text-red-600'}`}>
-            {msg.text}
-          </p>
-        )}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-          <Button type="submit" disabled={busy}>
-            {busy ? 'Adding…' : 'Add member'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
   )
 }

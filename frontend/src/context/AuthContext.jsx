@@ -39,8 +39,19 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  // re-read the user from the API (after verifying an email, renaming, ...)
+  const refreshUser = useCallback(() => authMe().then(setUser).catch(() => {}), [])
+
+  // used by the reset-password flow, which hands back a fresh session
+  const adoptSession = useCallback((nextUser, token) => {
+    localStorage.setItem(TOKEN_KEY, token)
+    setUser(nextUser)
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, signup, logout, refreshUser, adoptSession, setUser }}
+    >
       {children}
     </AuthContext.Provider>
   )

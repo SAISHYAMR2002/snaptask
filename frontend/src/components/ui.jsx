@@ -30,6 +30,38 @@ export const IconBoard = mk(<><rect x="3" y="3" width="18" height="18" rx="4" />
 export const IconLogout = mk(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></>)
 export const IconTrash = mk(<><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></>)
 export const IconCalendar = mk(<><rect x="3" y="4.5" width="18" height="17" rx="3" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /></>)
+export const IconHash = mk(<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />)
+export const IconBell = mk(<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a2 2 0 0 0 3.4 0" /></>)
+export const IconChart = mk(<path d="M4 20V10M10 20V4M16 20v-7M20 20v-3" />, { w: 2.5 })
+export const IconUsers = mk(<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16 5.2a3.5 3.5 0 0 1 0 5.6M17.5 14.5a6.5 6.5 0 0 1 4 5.5" /></>)
+export const IconSettings = mk(<><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" /></>)
+export const IconSend = mk(<path d="M22 2 11 13M22 2 15 22l-4-9-9-4z" />, { w: 2.2 })
+export const IconMail = mk(<><rect x="2" y="4" width="20" height="16" rx="3" /><path d="m2 7 10 6 10-6" /></>)
+export const IconAlert = mk(<><path d="M12 3 2 20h20L12 3z" /><path d="M12 9v5M12 17v.2" /></>)
+export const IconClock = mk(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>)
+export const IconMessage = mk(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />)
+export const IconAt = mk(<><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></>)
+export const IconArrowLeft = mk(<path d="M19 12H5M11 18l-6-6 6-6" />)
+export const IconSearch = mk(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>)
+
+/** Small coloured pill used for roles and member health. */
+export function Pill({ tone = 'gray', children, className = '' }) {
+  const tones = {
+    gray: 'bg-[#f1edfb] text-muted',
+    brand: 'bg-brand-100 text-brand-700',
+    amber: 'bg-amber-100 text-amber-700',
+    green: 'bg-green-100 text-green-700',
+    red: 'bg-red-100 text-red-700',
+    blue: 'bg-blue-100 text-blue-700',
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${tones[tone]} ${className}`}
+    >
+      {children}
+    </span>
+  )
+}
 
 /* ---------- primitives ---------- */
 export function Logo({ size = 28 }) {

@@ -6,6 +6,14 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Board from './pages/Board'
+import Chat from './pages/Chat'
+import Members from './pages/Members'
+import Analytics from './pages/Analytics'
+import Inbox from './pages/Inbox'
+import Settings from './pages/Settings'
+import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 function ProtectedRoute() {
   const { user, loading } = useAuth()
@@ -26,12 +34,22 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/inbox" element={<Inbox />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/workspace/:id" element={<Board />} />
+              <Route path="/workspace/:id/chat/:channelId" element={<Chat />} />
+              <Route path="/workspace/:id/members" element={<Members />} />
+              <Route path="/workspace/:id/analytics" element={<Analytics />} />
             </Route>
           </Route>
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

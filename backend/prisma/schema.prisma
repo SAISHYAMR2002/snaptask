@@ -11,19 +11,44 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  /// always stored lower-cased and trimmed, so Foo@Bar.com and foo@bar.com
+  /// are the same account (see lib/validate.js)
+  email         String    @unique
+  password      String
+  name          String
+  avatar        String?
+  emailVerified Boolean   @default(false)
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
-  workspaces      Workspace[] @relation("WorkspaceMembers")
-  createdTasks    Task[]      @relation("TaskCreatedBy")
-  assignedTasks   Task[]      @relation("TaskAssignedTo")
+  ownedWorkspaces Workspace[]         @relation("WorkspaceOwner")
+  memberships     WorkspaceMember[]
+  createdTasks    Task[]              @relation("TaskCreatedBy")
+  assignedTasks   Task[]              @relation("TaskAssignedTo")
   comments        Comment[]
+  messages        Message[]
+  notifications   Notification[]
+  prefs           NotificationPrefs?
+  tokens          VerificationToken[]
+}
+
+/// Single-use tokens for "verify your email" and "reset your password".
+/// Only a SHA-256 hash of the token is stored, never the token itself —
+/// so a database leak can't be used to take over accounts.
+model VerificationToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  type      String // verify_email | reset_password
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
 }
 
 model Workspace {
@@ -35,8 +60,28 @@ model Workspace {
   ownerId String
   owner   User   @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
 
-  members User[] @relation("WorkspaceMembers")
-  tasks   Task[]
+  members  WorkspaceMember[]
+  tasks    Task[]
+  channels Channel[]
+}
+
+/// Explicit join table so every membership carries a ROLE.
+/// owner  = created the workspace, can do anything incl. delete
+/// admin  = can see Team Analytics, invite/remove members, change roles below them
+/// member = normal access to tasks + chat
+model WorkspaceMember {
+  id       String   @id @default(cuid())
+  role     String   @default("member") // owner | admin | member
+  joinedAt DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
 }
 
 model Task {
@@ -46,6 +91,7 @@ model Task {
   status      String    @default("todo") // todo | in-progress | done
   priority    String    @default("medium") // low | medium | high
   dueDate     DateTime?
+  completedAt DateTime? // set when status becomes "done" — powers charts & analytics
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -53,12 +99,17 @@ model Task {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   createdById String
-  createdBy   User      @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [id])
 
   assignedToId String?
-  assignedTo   User?     @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  assignedTo   User?   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
 
-  comments Comment[]
+  comments      Comment[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@index([workspaceId])
+  @@index([assignedToId])
 }
 
 model Comment {
@@ -70,5 +121,79 @@ model Comment {
   task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+/// A chat channel inside a workspace (#general, #engineering, ...)
+model Channel {
+  id        String   @id @default(cuid())
+  name      String
+  purpose   String?
+  createdAt DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  @@unique([workspaceId, name])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// optional task card attached to the message
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String // assigned | mention | comment | status | due | overdue
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String // the recipient
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  workspaceId String?
+  channelId   String?
+
+  @@index([userId, read])
+}
+
+model NotificationPrefs {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailAssigned Boolean @default(true)
+  emailMention  Boolean @default(true)
+  emailComment  Boolean @default(true)
+  emailStatus   Boolean @default(false)
+
+  dailyDigest  Boolean @default(true)
+  digestHour   Int     @default(8)
+  weeklyReport Boolean @default(true)
+
+  remindBeforeDue Boolean @default(true)
+  remindHours     Int     @default(24)
+  nudgeOverdue    Boolean @default(true)
 }

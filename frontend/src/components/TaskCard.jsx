@@ -3,7 +3,9 @@ import { STATUSES } from '../lib/helpers'
 import { Avatar, IconCalendar, PriorityDot } from './ui'
 
 export default function TaskCard({ task, onMove, onOpen }) {
-  const due = formatDue(task.dueDate)
+  const raw = formatDue(task.dueDate)
+  // a finished task is never "overdue" — don't paint it red
+  const due = raw && task.status === 'done' ? { ...raw, overdue: false, soon: false } : raw
 
   return (
     <div
